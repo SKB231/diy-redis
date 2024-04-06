@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
   std::string message;
   std::cin >> message;
   std::cout << message.c_str();
+  message += "\r\n";
 
   send(client_fd, (void *)message.c_str(), message.size(), 0);
 
