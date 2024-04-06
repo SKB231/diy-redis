@@ -94,6 +94,7 @@ void handle(int socket_fd, struct sockaddr *client_addr) {
   if (final_message.size() > 6) {
     int message_len = final_message.size();
     std::string pingCmd = final_message.substr(message_len - 6, 4);
+    std::cout << "Last 6 characters " << pingCmd;
     if (pingCmd == "ping") {
       std::string resp = std::string("+PONG\r\n");
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
