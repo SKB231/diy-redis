@@ -71,38 +71,43 @@ int main(int argc, char **argv) {
 }
 
 void handle(int socket_fd, struct sockaddr *client_addr) {
-  char buff[32] = {};
-  std::string final_message = "";
-  int total_written = 0;
-  while (true) {
-    std::cout << "Listening for message: " << std::endl;
-    int data_written = recv(socket_fd, buff, 32, 0);
-    std::cout << "Recieved chunk of size " << data_written << "\n";
-    if (data_written == -1) {
-      std::cout << errno << "\n";
-      break;
+  bool closefd = false;
+  while (!closefd) {
+    char buff[32] = {};
+    std::string final_message = "";
+    int total_written = 0;
+    while (true) {
+      std::cout << "Listening for message: " << std::endl;
+      int data_written = recv(socket_fd, buff, 32, 0);
+      std::cout << "Recieved chunk of size " << data_written << "\n";
+      if (data_written == -1) {
+        std::cout << errno << "\n";
+        closefd = true;
+        break;
+      }
+      for (char i : buff) {
+        final_message += i;
+      }
+      total_written += data_written;
+      std::cout << "Message at the moment: \n" << final_message << std::endl;
+      if (data_written < 32) {
+        break;
+      }
     }
-    for (char i : buff) {
-      final_message += i;
-    }
-    total_written += data_written;
-    std::cout << "Message at the moment: \n" << final_message << std::endl;
-    if (data_written < 32) {
-      break;
-    }
-  }
-  final_message = final_message.substr(0, total_written);
-  std::cout << "Recieved message: " << final_message;
-  std::cout << final_message.size() << "\n";
+    final_message = final_message.substr(0, total_written);
+    std::cout << "Recieved message: " << final_message;
+    std::cout << final_message.size() << "\n";
 
-  if (final_message.size() >= 6) {
-    int message_len = final_message.size();
-    std::string pingCmd = final_message.substr(message_len - 6, 4);
-    std::cout << "Last 6 characters " << pingCmd;
-    if (pingCmd == "ping") {
-      std::string resp = std::string("+PONG\r\n");
-      send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
-      std::cout << "sending message " << resp;
+    if (final_message.size() >= 6) {
+      int message_len = final_message.size();
+      std::string pingCmd = final_message.substr(message_len - 6, 4);
+      std::cout << "Last 6 characters " << pingCmd;
+      if (pingCmd == "ping") {
+        std::string resp = std::string("+PONG\r\n");
+        send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+        std::cout << "sending message " << resp;
+      }
     }
   }
+  close(socket_fd);
 }
