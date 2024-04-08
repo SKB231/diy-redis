@@ -28,6 +28,12 @@ class Worker {
 
 public:
   std::pair<int, struct sockaddr_in *> params;
+  std::pair<int, std::string> params_deletion;
+  enum Job_Type {
+    connection,
+    deleter,
+  } job_type;
+
   std::condition_variable cv;
   std::mutex m;
   int id;
@@ -43,12 +49,26 @@ public:
       worker.cv.wait(lk);
       std::cout << "Thread " << worker.id << " running a job. \n";
 
-      // run the function
-      handle(worker.params.first, worker.params.second);
+      if (worker.job_type == Job_Type::connection) {
 
-      // Unlock m and reset params for use in next iteration
-      worker.params = std::pair<int, struct sockaddr_in *>{};
+        handle(worker.params.first, worker.params.second);
+
+        // Unlock m and reset params for use in next iteration
+        worker.params = std::pair<int, struct sockaddr_in *>{};
+      } else {
+
+        std::cout << "Attempting to delete after "
+                  << worker.params_deletion.first << " milliseconds\n";
+
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(worker.params_deletion.first));
+        std::string key_to_delete = worker.params_deletion.second;
+        mem_database.erase(mem_database.find(key_to_delete));
+        worker.job_type = Job_Type::connection;
+      }
+
       lk.unlock();
+      // run the function
       std::cout << "Thread " << worker.id
                 << " completed the job. Resetting.. \n";
     }
@@ -88,11 +108,22 @@ public:
   Master &operator=(const Master &master) = delete;
   Master(const Master &master) = delete;
 
-  void run(std::pair<int, struct sockaddr_in *> &params) {
+  void run_connection(std::pair<int, struct sockaddr_in *> &params) {
 
     std::lock_guard<std::mutex> guard(
         worker_lock); // Use guard to lock worker vector usage
     workers[thread_index]->params = params;
+    workers[thread_index]->cv.notify_one();
+    thread_index = (thread_index + 1) % workers.size();
+    std::cout << thread_index << " armed" << std::endl;
+  }
+
+  void run_deletion(std::pair<int, std::string> &params_deletion) {
+
+    std::lock_guard<std::mutex> guard(
+        worker_lock); // Use guard to lock worker vector usage
+    workers[thread_index]->params_deletion = params_deletion;
+    workers[thread_index]->job_type = Worker::Job_Type::deleter;
     workers[thread_index]->cv.notify_one();
     thread_index = (thread_index + 1) % workers.size();
     std::cout << thread_index << " armed" << std::endl;
@@ -106,14 +137,14 @@ public:
   }
 };
 
+// Our threads
+Master master = Master(4);
+
 int main(int argc, char **argv) {
 
   // You can use print statements as follows for debugging, they'll be visible
   // when running tests.
   std::cout << "Logs from your program will appear here!\n";
-
-  // Our threads
-  Master master = Master(4);
 
   // Uncomment this block to pass the first stage
 
@@ -164,7 +195,7 @@ int main(int argc, char **argv) {
     // handle(client_fd, (struct sockaddr_in *)&client_addr);
     std::pair<int, struct sockaddr_in *> params{
         client_fd, (struct sockaddr_in *)&client_addr};
-    master.run(params);
+    master.run_connection(params);
   }
 
   return 0;
@@ -195,10 +226,6 @@ std::vector<std::string> *split_by_clrf(std::string &full_message) {
   int last_token = 0;
   std::vector<std::string> *words{new std::vector<std::string>};
   for (int i = 0; i < full_message.length() - 1; i += 1) {
-    std::cout << ((full_message[i] == '\r') && (full_message[i + 1] == '\n') &&
-                  (i + 2 < full_message.size()))
-              << " " << i;
-    std::cout << std::endl;
     if (full_message[i] == '\r' && full_message[i + 1] == '\n') {
       // abcd\r\n
       // lt   i
@@ -225,10 +252,22 @@ std::string parse_command(std::vector<std::string> &command) {
     return "+" + std::string("PONG") + "\r\n";
   }
 
+  if (command.size() == 5 && command[0] == "set") {
+    std::size_t pos{};
+    const int lifetime{std::stoi(command[4], &pos)};
+    mem_database[command[1]] = command[2];
+    auto params = std::pair<int, std::string>{lifetime, command[1]};
+    std::cout << "Running delayed deletion by " << lifetime << "ms"
+              << std::endl;
+    master.run_deletion(params);
+    return "+" + std::string("OK") + "\r\n";
+  }
+
   if (command[0] == "set") {
     mem_database[command[1]] = command[2];
     return "+" + std::string("OK") + "\r\n";
   }
+
   auto it = mem_database.find(command[1]);
   if (it == mem_database.end()) {
     // element doesn't exist

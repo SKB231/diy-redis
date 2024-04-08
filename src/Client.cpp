@@ -33,7 +33,9 @@ int main(int argc, char **argv) {
   std::cout << "Connected to server.\n";
 
   // std::string message = "*2\r\n$4\r\necho\r\n$3\r\nhey\r\n";
-  std::string message = "*1\r\n$4\r\nping\r\n";
+  // std::string message = "*1\r\n$4\r\nping\r\n";
+  std::string message = "*5\r\n$3\r\nset\r\n$6\r\nbanana\r\n$5\r\ngrape\r\n$"
+                        "2\r\npx\r\n$3\r\n100\r\n";
   std::cout << message.c_str();
   message += "\r\n";
   send(client_fd, (void *)message.c_str(), message.size(), 0);
