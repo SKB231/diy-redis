@@ -183,6 +183,10 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
       std::cout << "Listening for message: " << std::endl;
       int data_written = recv(socket_fd, buff, 32, 0);
       std::cout << "Recieved chunk of size " << data_written << "\n";
+      if (data_written < 32) {
+        closefd = true;
+        break;
+      }
       if (data_written == -1) {
         std::cout << errno << "\n";
         closefd = true;
@@ -193,9 +197,6 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
       }
       total_written += data_written;
       std::cout << "Message at the moment: \n" << final_message << std::endl;
-      if (data_written < 32) {
-        break;
-      }
     }
     final_message = final_message.substr(0, total_written);
     std::cout << "Recieved message: " << final_message;
