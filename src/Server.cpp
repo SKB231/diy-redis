@@ -64,6 +64,7 @@ class Master {
   std::vector<std::thread *> threads_in_use;
   int thread_index;
   int thread_count;
+  std::mutex worker_lock;
 
 public:
   Master(int thread_count) {
@@ -86,9 +87,13 @@ public:
   Master(const Master &master) = delete;
 
   void run(std::pair<int, struct sockaddr_in *> &params) {
+
+    std::lock_guard<std::mutex> guard(
+        worker_lock); // Use guard to lock worker vector usage
     workers[thread_index]->params = params;
     workers[thread_index]->cv.notify_one();
-    thread_index += 1;
+    thread_index = (thread_index + 1) % workers.size();
+    std::cout << thread_index << " armed" << std::endl;
   }
 
   ~Master() {
@@ -106,7 +111,7 @@ int main(int argc, char **argv) {
   std::cout << "Logs from your program will appear here!\n";
 
   // Our threads
-  Master master = Master(10);
+  Master master = Master(4);
 
   // Uncomment this block to pass the first stage
 
@@ -151,7 +156,6 @@ int main(int argc, char **argv) {
                            (socklen_t *)&client_addr_len);
     if (client_fd < 0) {
       std::cout << "Socket connection failed\n" << std::endl;
-
       continue;
     }
     std::cout << "Client connected\n";
@@ -179,39 +183,54 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     char buff[32] = {};
     std::string final_message = "";
     int total_written = 0;
-    while (true) {
-      std::cout << "Listening for message: " << std::endl;
-      int data_written = recv(socket_fd, buff, 32, 0);
-      std::cout << "Recieved chunk of size " << data_written << "\n";
-      if (data_written < 32) {
-        closefd = true;
-        break;
-      }
-      if (data_written == -1) {
-        std::cout << errno << "\n";
-        closefd = true;
-        break;
-      }
-      for (char i : buff) {
-        final_message += i;
-      }
-      total_written += data_written;
-      std::cout << "Message at the moment: \n" << final_message << std::endl;
+    while (false) {
+      // if (data_written == -1) {
+      //   std::cout << errno << "\n";
+      //   closefd = true;
+      //   break;
+      // }
+      // for (char i : buff) {
+      //   final_message += i;
+      // }
+      // total_written += data_written;
+      // std::cout << "Message at the moment: \n" << final_message << std::endl;
+      // if (data_written < 32) {
+      //   closefd = true;
+      //   break;
+      // }
     }
-    final_message = final_message.substr(0, total_written);
-    std::cout << "Recieved message: " << final_message;
-    std::cout << final_message.size() << "\n";
 
-    if (final_message.size() >= 6) {
-      int message_len = final_message.size();
-      std::string pingCmd = final_message.substr(message_len - 6, 4);
-      std::cout << "Last 6 characters " << pingCmd;
-      if (pingCmd == "ping") {
-        std::string resp = std::string("+PONG\r\n");
-        send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
-        std::cout << "sending message " << resp;
-      }
+    std::cout << "Listening for message: " << std::endl;
+    int data_written = recv(socket_fd, buff, 32, 0);
+    std::cout << "Client sent: " << data_written << std::endl;
+    if (data_written <= 0) {
+      // I'm not sure how this works, will have to look into it later
+      std::cout << "Client most likely disconnected" << std::endl;
+      break;
     }
+    std::string resp = std::string("+PONG\r\n");
+    send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+    std::cout << "sent resp " << socket_fd << std::endl;
+    // std::cout << "Recieved chunk of size " << data_written << "\n";
+    //// Until stage 4:
+    // break;
+    // if (data_written > 0) {
+    //   break;
+    // }
+    // final_message = final_message.substr(0, total_written);
+    // std::cout << "Recieved message: " << final_message;
+    // std::cout << final_message.size() << "\n";
+
+    // if (final_message.size() >= 6) {
+    //   int message_len = final_message.size();
+    //   std::string pingCmd = final_message.substr(message_len - 6, 4);
+    //   std::cout << "Last 6 characters " << pingCmd;
+    //   if (pingCmd == "ping") {
+    //     std::string resp = std::string("+PONG\r\n");
+    //     send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+    //     std::cout << "sending message " << resp;
+    //   }
+    // }
   }
   close(socket_fd);
 }

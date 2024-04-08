@@ -30,14 +30,17 @@ int main(int argc, char **argv) {
     std::cout << "Failed to connect client to server";
   }
 
-  std::cout << "Connected to server. Enter your message: ";
+  std::cout << "Connected to server.\n";
+  while (true) {
+    std::cout << " Enter your message: ";
 
-  std::string message;
-  std::cin >> message;
-  std::cout << message.c_str();
-  message += "\r\n";
+    std::string message;
+    std::cin >> message;
+    std::cout << message.c_str();
+    message += "\r\n";
 
-  send(client_fd, (void *)message.c_str(), message.size(), 0);
+    send(client_fd, (void *)message.c_str(), message.size(), 0);
+  }
 
   close(client_fd);
 
