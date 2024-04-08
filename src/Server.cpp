@@ -1,21 +1,112 @@
 #include <arpa/inet.h>
 #include <cerrno>
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
-#include <cstring>
+#include <functional>
 #include <iostream>
+#include <mutex>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <new>
 #include <ostream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
+#include <utility>
+#include <vector>
 
-void handle(int socket_fd, struct sockaddr *client_addr);
+void handle(int socket_fd, struct sockaddr_in *client_addr);
+
+void test_handle(int socket_fd, struct sockaddr_in *client_addr);
+
+class Worker {
+
+public:
+  std::pair<int, struct sockaddr_in *> params;
+  std::condition_variable cv;
+  std::mutex m;
+  int id;
+
+  Worker(int id) { this->id = id; }
+
+  static void run(Worker &worker) {
+    while (true) {
+      // If cv is notified, then run the function with the parameters
+      std::unique_lock lk(worker.m);
+
+      std::cout << "Thread " << worker.id << " waiting for job. \n";
+      worker.cv.wait(lk);
+      std::cout << "Thread " << worker.id << " running a job. \n";
+
+      // run the function
+      handle(worker.params.first, worker.params.second);
+
+      // Unlock m and reset params for use in next iteration
+      worker.params = std::pair<int, struct sockaddr_in *>{};
+      lk.unlock();
+      std::cout << "Thread " << worker.id
+                << " completed the job. Resetting.. \n";
+    }
+  }
+};
+
+/**
+ * This thread master initializes a set of worker threads. Each worker thread
+ * will be waiting for the callback function to become non-null. When work is
+ * assigned, a thread will run that job and wait for the next job when the job
+ * is completed.
+ */
+class Master {
+  std::vector<Worker *> workers;
+  std::vector<std::thread *> threads_in_use;
+  int thread_index;
+  int thread_count;
+
+public:
+  Master(int thread_count) {
+    thread_index = {};
+    for (int i = 0; i < thread_count; i++) {
+      Worker *new_worker = new (std::nothrow) Worker(i);
+
+      if (!new_worker)
+        return;
+
+      std::thread *worker_thread =
+          new std::thread(&Worker::run, std::ref(*new_worker));
+      threads_in_use.push_back(worker_thread);
+      workers.push_back(new_worker);
+    }
+  }
+
+  // Currently no plans to use copy function
+  Master &operator=(const Master &master) = delete;
+  Master(const Master &master) = delete;
+
+  void run(std::pair<int, struct sockaddr_in *> &params) {
+    workers[thread_index]->params = params;
+    workers[thread_index]->cv.notify_one();
+    thread_index += 1;
+  }
+
+  ~Master() {
+    for (int i = 0; i < thread_count; i++) {
+      delete threads_in_use[i];
+      delete workers[i];
+    }
+  }
+};
 
 int main(int argc, char **argv) {
+
   // You can use print statements as follows for debugging, they'll be visible
   // when running tests.
   std::cout << "Logs from your program will appear here!\n";
+
+  // Our threads
+  Master master = Master(10);
 
   // Uncomment this block to pass the first stage
 
@@ -64,10 +155,22 @@ int main(int argc, char **argv) {
       continue;
     }
     std::cout << "Client connected\n";
-    handle(client_fd, (struct sockaddr *)&client_addr);
+    // handle(client_fd, (struct sockaddr_in *)&client_addr);
+    std::pair<int, struct sockaddr_in *> params{
+        client_fd, (struct sockaddr_in *)&client_addr};
+    master.run(params);
   }
 
   return 0;
+}
+
+void test_handle(int socket_fd, struct sockaddr_in *client_addr) {
+  std::cout << "====RUN HANDLE FOR " << socket_fd << "========\n" << std::endl;
+  int time = std::rand() % 10;
+  std::cout << "Sleeping for " << time << "seconds" << std::endl;
+  std::this_thread::sleep_for(std::chrono::seconds(time));
+  std::cout << "====RUN HANDLE COMPLETED FOR " << socket_fd << "========\n"
+            << std::endl;
 }
 
 void handle(int socket_fd, struct sockaddr *client_addr) {
