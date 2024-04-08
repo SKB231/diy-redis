@@ -14,12 +14,15 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 
 void test_handle(int socket_fd, struct sockaddr_in *client_addr);
+
+std::unordered_map<std::string, std::string> mem_database{};
 
 class Worker {
 
@@ -216,8 +219,24 @@ std::string parse_command(std::vector<std::string> &command) {
   }
   if (command[0] == "echo") {
     return "+" + command[1] + "\r\n";
-  } else {
+  }
+
+  if (command[0] == "ping") {
     return "+" + std::string("PONG") + "\r\n";
+  }
+
+  if (command[0] == "set") {
+    mem_database[command[1]] = command[2];
+    return "+" + std::string("OK") + "\r\n";
+  }
+  auto it = mem_database.find(command[1]);
+  if (it == mem_database.end()) {
+    // element doesn't exist
+    return std::string("$-1\r\n");
+  } else {
+    auto res = mem_database[command[1]];
+    return std::string("$") + std::to_string(res.size()) + "\r\n" + res +
+           std::string("\r\n");
   }
 }
 
