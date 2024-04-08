@@ -173,7 +173,7 @@ void test_handle(int socket_fd, struct sockaddr_in *client_addr) {
             << std::endl;
 }
 
-void handle(int socket_fd, struct sockaddr *client_addr) {
+void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
     char buff[32] = {};
