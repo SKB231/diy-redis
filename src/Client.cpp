@@ -31,18 +31,17 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "Connected to server.\n";
-  while (true) {
-    std::cout << " Enter your message: ";
 
-    std::string message;
-    std::cin >> message;
-    std::cout << message.c_str();
-    message += "\r\n";
+  // std::string message = "*2\r\n$4\r\necho\r\n$3\r\nhey\r\n";
+  std::string message = "*1\r\n$4\r\nping\r\n";
+  std::cout << message.c_str();
+  message += "\r\n";
+  send(client_fd, (void *)message.c_str(), message.size(), 0);
 
-    send(client_fd, (void *)message.c_str(), message.size(), 0);
-  }
-
+  // message = message_2;
+  // std::cout << message.c_str();
+  // message += "\r\n";
+  // send(client_fd, (void *)message.c_str(), message.size(), 0);
   close(client_fd);
-
   return 0;
 }

@@ -1,5 +1,5 @@
 #include <arpa/inet.h>
-#include <cerrno>
+#include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
@@ -9,7 +9,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <new>
-#include <ostream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -177,60 +176,73 @@ void test_handle(int socket_fd, struct sockaddr_in *client_addr) {
             << std::endl;
 }
 
+std::string *get_full_message(int socket_fd) {
+  int data_written = 1;
+  std::string *final_string = new std::string("");
+  char buff[256];
+  data_written = recv(socket_fd, buff, 256, 0);
+  for (int i = 0; i < data_written; i++) {
+    *final_string += buff[i];
+  }
+  std::cout << "DATA WRITTEN: " << data_written << std::endl;
+  return final_string;
+}
+
+std::vector<std::string> *split_by_clrf(std::string &full_message) {
+  int last_token = 0;
+  std::vector<std::string> *words{new std::vector<std::string>};
+  for (int i = 0; i < full_message.length() - 1; i += 1) {
+    std::cout << ((full_message[i] == '\r') && (full_message[i + 1] == '\n') &&
+                  (i + 2 < full_message.size()))
+              << " " << i;
+    std::cout << std::endl;
+    if (full_message[i] == '\r' && full_message[i + 1] == '\n') {
+      // abcd\r\n
+      // lt   i
+      std::string word = full_message.substr(last_token, i - last_token);
+      // std::cout << word << "\n";
+      if (word.length() > 0 && word[0] != '$' && word[0] != '*') {
+        words->push_back(word);
+      }
+      last_token = i + 2;
+    }
+  }
+  return words;
+}
+
+std::string parse_command(std::vector<std::string> &command) {
+  for (int i = 0; i < command[0].size(); i++) {
+    command[0][i] = std::tolower(command[0][i]);
+  }
+  if (command[0] == "echo") {
+    return "+" + command[1] + "\r\n";
+  } else {
+    return "+" + std::string("PONG") + "\r\n";
+  }
+}
+
 void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
     char buff[32] = {};
-    std::string final_message = "";
     int total_written = 0;
-    while (false) {
-      // if (data_written == -1) {
-      //   std::cout << errno << "\n";
-      //   closefd = true;
-      //   break;
-      // }
-      // for (char i : buff) {
-      //   final_message += i;
-      // }
-      // total_written += data_written;
-      // std::cout << "Message at the moment: \n" << final_message << std::endl;
-      // if (data_written < 32) {
-      //   closefd = true;
-      //   break;
-      // }
-    }
-
     std::cout << "Listening for message: " << std::endl;
-    int data_written = recv(socket_fd, buff, 32, 0);
-    std::cout << "Client sent: " << data_written << std::endl;
-    if (data_written <= 0) {
-      // I'm not sure how this works, will have to look into it later
-      std::cout << "Client most likely disconnected" << std::endl;
+    std::string req = *(get_full_message(socket_fd));
+    if (req.length() <= 1) {
       break;
     }
-    std::string resp = std::string("+PONG\r\n");
-    send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
-    std::cout << "sent resp " << socket_fd << std::endl;
-    // std::cout << "Recieved chunk of size " << data_written << "\n";
-    //// Until stage 4:
-    // break;
-    // if (data_written > 0) {
-    //   break;
-    // }
-    // final_message = final_message.substr(0, total_written);
-    // std::cout << "Recieved message: " << final_message;
-    // std::cout << final_message.size() << "\n";
+    std::cout << "Received message: " << req << std::endl;
+    std::vector<std::string> *all_words = split_by_clrf(req);
+    std::cout << "ARRAY: ";
 
-    // if (final_message.size() >= 6) {
-    //   int message_len = final_message.size();
-    //   std::string pingCmd = final_message.substr(message_len - 6, 4);
-    //   std::cout << "Last 6 characters " << pingCmd;
-    //   if (pingCmd == "ping") {
-    //     std::string resp = std::string("+PONG\r\n");
-    //     send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
-    //     std::cout << "sending message " << resp;
-    //   }
-    // }
+    for (std::string word : *all_words) {
+      std::cout << word << ", ";
+    }
+    std::cout << std::endl;
+
+    std::string response = parse_command(*all_words);
+    std::cout << "Server Response: " << response << std::endl;
+    send(socket_fd, (void *)response.c_str(), response.size(), 0);
   }
   close(socket_fd);
 }
