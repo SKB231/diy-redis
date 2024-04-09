@@ -287,6 +287,10 @@ std::vector<std::string> *split_by_clrf(std::string &full_message) {
   return words;
 }
 
+std::string get_resp_bulkstring(std::string word) {
+  return "$" + std::to_string(word.size()) + "\r\n" + word + "\r\n";
+}
+
 std::string parse_command(std::vector<std::string> &command) {
   for (int i = 0; i < command[0].size(); i++) {
     command[0][i] = std::tolower(command[0][i]);
@@ -326,7 +330,11 @@ std::string parse_command(std::vector<std::string> &command) {
         resp = "role:slave";
         break;
       }
-      return "$" + std::to_string(resp.size()) + "\r\n" + resp + "\r\n";
+      std::string repl_id =
+          "master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+      std::string repl_offset = "master_repl_offset:0";
+
+      return get_resp_bulkstring(resp + repl_id + repl_offset);
     }
   }
 
