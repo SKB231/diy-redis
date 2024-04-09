@@ -140,10 +140,36 @@ public:
 // Our threads
 Master master = Master(4);
 
+int parse_arguments(int argc, char **argv) {
+  if (argc == 1) {
+    return 6379;
+  }
+
+  for (int i = 1; i < argc - 1; i++) {
+    std::string query = std::string(argv[i]);
+    std::string val = std::string(argv[i + 1]);
+    if (query == "--port") {
+      try {
+        size_t siz{};
+        int port_num = std::stoi(val, &siz, 10);
+        std::cout << "using port number " << port_num << std::endl;
+        return port_num;
+      } catch (const std::exception &e) {
+        std::cout << "Param conversion error\n";
+        std::cout << e.what();
+        return 6379;
+      }
+    }
+  }
+  return 10;
+}
+
 int main(int argc, char **argv) {
 
-  // You can use print statements as follows for debugging, they'll be visible
-  // when running tests.
+  int port_num = parse_arguments(argc, argv);
+
+  // You can use print statements as follows for debugging, they'll be
+  // visible when running tests.
   std::cout << "Logs from your program will appear here!\n";
 
   // Uncomment this block to pass the first stage
@@ -166,11 +192,11 @@ int main(int argc, char **argv) {
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(6379);
+  server_addr.sin_port = htons(port_num);
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
-    std::cerr << "Failed to bind to port 6379\n";
+    std::cerr << "Failed to bind to port " << port_num << std::endl;
     return 1;
   }
 

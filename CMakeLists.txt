@@ -8,3 +8,9 @@ add_executable(server ${SOURCE_FILES})
 
 # Link with pthread
 target_link_libraries(server pthread)
+
+
+
+# FIND_PACKAGE( Boost 1.70 COMPONENTS program_options REQUIRED )
+# message("Boost lib: ${Boost_LIBRARIES}")
+# target_link_libraries(server ${Boost_LIBRARIES})
