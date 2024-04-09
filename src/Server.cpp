@@ -294,6 +294,13 @@ std::string parse_command(std::vector<std::string> &command) {
     return "+" + std::string("OK") + "\r\n";
   }
 
+  if (command[0] == "info") {
+    if (command[1] == "replication") {
+      std::string resp = "role:master";
+      return "$" + std::to_string(resp.size()) + "\r\n" + resp + "\r\n";
+    }
+  }
+
   auto it = mem_database.find(command[1]);
   if (it == mem_database.end()) {
     // element doesn't exist
