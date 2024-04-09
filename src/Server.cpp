@@ -140,11 +140,20 @@ public:
 // Our threads
 Master master = Master(4);
 
-int parse_arguments(int argc, char **argv) {
-  if (argc == 1) {
-    return 6379;
-  }
+struct Config_Settings {
+public:
+  enum { master, slave } server_role;
+  int server_port;
+  std::pair<std::string, int> master_info;
+};
 
+Config_Settings parse_arguments(int argc, char **argv) {
+  if (argc == 1) {
+    return Config_Settings{Config_Settings::master, 6379, {}};
+  }
+  Config_Settings config_settings;
+
+  config_settings.server_port = 6379;
   for (int i = 1; i < argc - 1; i++) {
     std::string query = std::string(argv[i]);
     std::string val = std::string(argv[i + 1]);
@@ -152,21 +161,33 @@ int parse_arguments(int argc, char **argv) {
       try {
         size_t siz{};
         int port_num = std::stoi(val, &siz, 10);
-        std::cout << "using port number " << port_num << std::endl;
-        return port_num;
+        config_settings.server_port = port_num;
       } catch (const std::exception &e) {
         std::cout << "Param conversion error\n";
         std::cout << e.what();
-        return 6379;
+      }
+    } else if (query == "--replicaof" && (i + 2 < argc)) {
+      // Slave settings
+      config_settings.server_role = Config_Settings::slave;
+      std::string master_port_int = std::string(argv[i + 2]);
+      config_settings.master_info = {val, 0};
+      try {
+        size_t siz{};
+        // std::cout << "Converting: " << val << std::endl;
+        int port_num = std::stoi(master_port_int, &siz, 10);
+        config_settings.master_info.second = port_num;
+      } catch (const std::exception &e) {
+        std::cout << "Param conversion error 2: " << e.what() << std::endl;
       }
     }
   }
-  return 10;
+  return config_settings;
 }
+Config_Settings config;
 
 int main(int argc, char **argv) {
 
-  int port_num = parse_arguments(argc, argv);
+  config = parse_arguments(argc, argv);
 
   // You can use print statements as follows for debugging, they'll be
   // visible when running tests.
@@ -192,11 +213,11 @@ int main(int argc, char **argv) {
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(port_num);
+  server_addr.sin_port = htons(config.server_port);
 
   if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
-    std::cerr << "Failed to bind to port " << port_num << std::endl;
+    std::cerr << "Failed to bind to port " << config.server_port << std::endl;
     return 1;
   }
 
@@ -296,7 +317,15 @@ std::string parse_command(std::vector<std::string> &command) {
 
   if (command[0] == "info") {
     if (command[1] == "replication") {
-      std::string resp = "role:master";
+      std::string resp{""};
+      switch (config.server_role) {
+      case Config_Settings::master:
+        resp = "role:master";
+        break;
+      case Config_Settings::slave:
+        resp = "role:slave";
+        break;
+      }
       return "$" + std::to_string(resp.size()) + "\r\n" + resp + "\r\n";
     }
   }
