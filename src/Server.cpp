@@ -3,6 +3,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <mutex>
@@ -170,6 +171,7 @@ Config_Settings parse_arguments(int argc, char **argv) {
       // Slave settings
       config_settings.server_role = Config_Settings::slave;
       std::string master_port_int = std::string(argv[i + 2]);
+
       config_settings.master_info = {val, 0};
       try {
         size_t siz{};
@@ -184,6 +186,40 @@ Config_Settings parse_arguments(int argc, char **argv) {
   return config_settings;
 }
 Config_Settings config;
+
+in_addr_t string_to_addr(std::string &addr) {
+  in_addr_t ret_addr;
+  inet_pton(AF_INET, addr.c_str(), (void *)(&ret_addr));
+  return ret_addr;
+}
+
+void run_handshake() {
+  // Use the current config variable to connect to the master
+  //
+  // Create a file descriptor to connect to the master server. We initialize it
+  // with the same parameters: Ipv4 and reliable socket_stream
+  int replica_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (replica_fd < 0) {
+    std::cerr << "Failed to create replica socket\n";
+    return;
+  }
+
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = string_to_addr(config.master_info.first);
+  server_addr.sin_port = htons(config.master_info.second);
+
+  std::cout << "\nAttemtping to connect to server" << std::endl;
+  int res =
+      connect(replica_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+  if (res < 0) {
+    std::cout << "Failed to connect replica to master\n";
+  }
+
+  std::cout << "Connected to master.\n";
+  const char *message{"*1\r\n$4\r\nping\r\n"};
+  send(replica_fd, message, std::string(message).size(), 0);
+}
 
 int main(int argc, char **argv) {
 
@@ -226,6 +262,9 @@ int main(int argc, char **argv) {
     std::cerr << "listen failed\n";
     return 1;
   }
+
+  if (config.server_role == Config_Settings::slave)
+    run_handshake();
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
