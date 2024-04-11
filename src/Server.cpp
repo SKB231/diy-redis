@@ -232,6 +232,9 @@ void run_handshake() {
   const char *repl_conf_2{
       "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
   send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
+
+  const char *psync{"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"};
+  send(replica_fd, psync, std::string(psync).size(), 0);
 }
 
 int main(int argc, char **argv) {
@@ -393,6 +396,10 @@ std::string parse_command(std::vector<std::string> &command) {
 
   if (command[0] == "replconf") {
     return std::string("+OK\r\n");
+  }
+
+  if (command[0] == "psync") {
+    return std::string("+FULLRESYNC <REPL_ID> 0\r\n");
   }
 
   auto it = mem_database.find(command[1]);
