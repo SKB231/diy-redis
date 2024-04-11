@@ -399,7 +399,9 @@ std::string parse_command(std::vector<std::string> &command) {
   }
 
   if (command[0] == "psync") {
-    return std::string("+FULLRESYNC <REPL_ID> 0\r\n");
+
+    return std::string(
+        "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n");
   }
 
   auto it = mem_database.find(command[1]);
