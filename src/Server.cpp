@@ -20,6 +20,7 @@
 #include <vector>
 
 void handle(int socket_fd, struct sockaddr_in *client_addr);
+std::string *get_full_message(int socket_fd);
 
 void test_handle(int socket_fd, struct sockaddr_in *client_addr);
 
@@ -196,8 +197,8 @@ in_addr_t string_to_addr(std::string &addr) {
 void run_handshake() {
   // Use the current config variable to connect to the master
   //
-  // Create a file descriptor to connect to the master server. We initialize it
-  // with the same parameters: Ipv4 and reliable socket_stream
+  // Create a file descriptor to connect to the master server. We initialize
+  // it with the same parameters: Ipv4 and reliable socket_stream
   int replica_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (replica_fd < 0) {
     std::cerr << "Failed to create replica socket\n";
@@ -217,8 +218,20 @@ void run_handshake() {
   }
 
   std::cout << "Connected to master.\n";
+
+  // HANDSHAKE: PING
   const char *message{"*1\r\n$4\r\nping\r\n"};
   send(replica_fd, message, std::string(message).size(), 0);
+  std::string *response_ping = get_full_message(replica_fd);
+
+  const char *repl_conf{
+      "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"};
+  send(replica_fd, repl_conf, std::string(repl_conf).size(), 0);
+  std::string *response_repl_1 = get_full_message(replica_fd);
+
+  const char *repl_conf_2{
+      "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
+  send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
 }
 
 int main(int argc, char **argv) {
@@ -264,7 +277,8 @@ int main(int argc, char **argv) {
   }
 
   if (config.server_role == Config_Settings::slave)
-    run_handshake();
+    new std::thread{run_handshake}; // run handshake in a seperate thread
+                                    // without requirement to destroy
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
@@ -375,6 +389,10 @@ std::string parse_command(std::vector<std::string> &command) {
 
       return get_resp_bulkstring(resp + repl_id + repl_offset);
     }
+  }
+
+  if (command[0] == "replconf") {
+    return std::string("+OK\r\n");
   }
 
   auto it = mem_database.find(command[1]);
