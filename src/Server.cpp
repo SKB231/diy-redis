@@ -19,11 +19,14 @@
 #include <utility>
 #include <vector>
 
+// Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
-std::string *get_full_message(int socket_fd);
+void run_handshake();
 
+std::string *get_full_message(int socket_fd);
 void test_handle(int socket_fd, struct sockaddr_in *client_addr);
 
+// Global Variables:
 std::unordered_map<std::string, std::string> mem_database{};
 
 class Worker {
@@ -195,49 +198,6 @@ in_addr_t string_to_addr(std::string &addr) {
   return ret_addr;
 }
 
-void run_handshake() {
-  // Use the current config variable to connect to the master
-  //
-  // Create a file descriptor to connect to the master server. We initialize
-  // it with the same parameters: Ipv4 and reliable socket_stream
-  int replica_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (replica_fd < 0) {
-    std::cerr << "Failed to create replica socket\n";
-    return;
-  }
-
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = string_to_addr(config.master_info.first);
-  server_addr.sin_port = htons(config.master_info.second);
-
-  std::cout << "\nAttemtping to connect to server" << std::endl;
-  int res =
-      connect(replica_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (res < 0) {
-    std::cout << "Failed to connect replica to master\n";
-  }
-
-  std::cout << "Connected to master.\n";
-
-  // HANDSHAKE: PING
-  const char *message{"*1\r\n$4\r\nping\r\n"};
-  send(replica_fd, message, std::string(message).size(), 0);
-  std::string *response_ping = get_full_message(replica_fd);
-
-  const char *repl_conf{
-      "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"};
-  send(replica_fd, repl_conf, std::string(repl_conf).size(), 0);
-  std::string *response_repl_1 = get_full_message(replica_fd);
-
-  const char *repl_conf_2{
-      "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
-  send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
-
-  const char *psync{"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"};
-  send(replica_fd, psync, std::string(psync).size(), 0);
-}
-
 int main(int argc, char **argv) {
 
   config = parse_arguments(argc, argv);
@@ -280,9 +240,10 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (config.server_role == Config_Settings::slave)
+  if (config.server_role == Config_Settings::slave) {
     new std::thread{run_handshake}; // run handshake in a seperate thread
                                     // without requirement to destroy
+  }
 
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
@@ -303,15 +264,6 @@ int main(int argc, char **argv) {
   }
 
   return 0;
-}
-
-void test_handle(int socket_fd, struct sockaddr_in *client_addr) {
-  std::cout << "====RUN HANDLE FOR " << socket_fd << "========\n" << std::endl;
-  int time = std::rand() % 10;
-  std::cout << "Sleeping for " << time << "seconds" << std::endl;
-  std::this_thread::sleep_for(std::chrono::seconds(time));
-  std::cout << "====RUN HANDLE COMPLETED FOR " << socket_fd << "========\n"
-            << std::endl;
 }
 
 std::string *get_full_message(int socket_fd) {
@@ -348,72 +300,123 @@ std::string get_resp_bulkstring(std::string word) {
   return "$" + std::to_string(word.size()) + "\r\n" + word + "\r\n";
 }
 
-std::string parse_command(std::vector<std::string> &command) {
-  for (int i = 0; i < command[0].size(); i++) {
-    command[0][i] = std::tolower(command[0][i]);
-  }
-  if (command[0] == "echo") {
-    return "+" + command[1] + "\r\n";
-  }
+void parse_command(std::vector<std::string> &command,
+                   std::vector<std::string> &resp) {
+  for (int i = 0; i < command.size();) {
+    // We currently are in the COMMAND string. The remaining words need to be
+    // unaltered to ensure case-sensitivity
+    for (int j = 0; j < command[i].size(); j++) {
+      command[i][j] = std::tolower(command[i][j]);
+    }
 
-  if (command[0] == "ping") {
-    return "+" + std::string("PONG") + "\r\n";
-  }
+    if (command[i] == "echo") {
+      // return "+" + command[1] + "\r\n";
+      resp.push_back("+" + command[i + 1] + "\r\n");
+      i += 2;
+      continue;
+    }
 
-  if (command.size() == 5 && command[0] == "set") {
-    std::size_t pos{};
-    const int lifetime{std::stoi(command[4], &pos)};
-    mem_database[command[1]] = command[2];
-    auto params = std::pair<int, std::string>{lifetime, command[1]};
-    std::cout << "Running delayed deletion by " << lifetime << "ms"
-              << std::endl;
-    master.run_deletion(params);
-    return "+" + std::string("OK") + "\r\n";
-  }
+    if (command[i] == "ping") {
+      // return "+" + std::string("PONG") + "\r\n";
+      resp.push_back("+" + std::string("PONG") + "\r\n");
+      i += 1;
+      continue;
+    }
 
-  if (command[0] == "set") {
-    mem_database[command[1]] = command[2];
-    return "+" + std::string("OK") + "\r\n";
-  }
+    if (command[i] == "set") {
+      std::cout << "Set command" << std::endl;
+      std::size_t pos{};
+      int skip_amount = 3;
 
-  if (command[0] == "info") {
-    if (command[1] == "replication") {
-      std::string resp{""};
-      switch (config.server_role) {
-      case Config_Settings::master:
-        resp = "role:master";
-        break;
-      case Config_Settings::slave:
-        resp = "role:slave";
-        break;
+      int lifetime{};
+      if (i + 3 < command.size()) {
+        for (int j = 0; j < command[i + 3].size(); j++) {
+          command[i + 3][j] = std::tolower(command[i + 3][j]);
+        }
+        std::cout << (command[i + 3] == "px");
       }
-      std::string repl_id =
-          "master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
-      std::string repl_offset = "master_repl_offset:0";
 
-      return get_resp_bulkstring(resp + repl_id + repl_offset);
+      if (i + 3 < command.size() && command[i + 3] == "px") {
+        std::cout << "Expirable command" << std::endl;
+        lifetime = std::stoi(command[i + 4], &pos);
+        skip_amount += 2;
+      }
+
+      mem_database[command[i + 1]] = command[i + 2];
+
+      if (lifetime > 0) {
+
+        auto params = std::pair<int, std::string>{lifetime, command[i + 1]};
+        std::cout << "Running delayed deletion by " << lifetime << "ms"
+                  << std::endl;
+        master.run_deletion(params);
+      }
+
+      // return "+" + std::string("OK") + "\r\n";
+      i += skip_amount;
+      std::cout << "End SET Command Skipping by " << skip_amount << " to " << i
+                << std::endl;
+      resp.push_back("+OK\r\n");
+      continue;
+    }
+
+    if (command[i] == "info") {
+
+      if (command[i + 1] == "replication") {
+        std::string resp_str{""};
+        switch (config.server_role) {
+        case Config_Settings::master:
+          resp_str = "role:master";
+          break;
+        case Config_Settings::slave:
+          resp_str = "role:slave";
+          break;
+        }
+        std::string repl_id =
+            "master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+        std::string repl_offset = "master_repl_offset:0";
+        resp.push_back(get_resp_bulkstring(resp_str + repl_id + repl_offset));
+        i += 2;
+      } else {
+        i += 1;
+      }
+      continue;
+    }
+
+    if (command[i] == "replconf") {
+      resp.push_back(std::string("+OK\r\n"));
+      i += 3;
+      if (i < command.size() && command[i] == "capa") {
+        i += 2;
+      }
+      continue;
+    }
+
+    if (command[i] == "psync") {
+      resp.push_back(std::string(
+          "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"));
+      i += 3;
+      continue;
+    }
+
+    if (command[i] == "get") {
+      auto it = mem_database.find(command[i + 1]);
+      if (it == mem_database.end()) {
+        // element doesn't exist
+        resp.push_back(std::string("$-1\r\n"));
+      } else {
+        auto res = mem_database[command[i + 1]];
+        resp.push_back(std::string("$") + std::to_string(res.size()) + "\r\n" +
+                       res + std::string("\r\n"));
+      }
+      i += 2;
+      continue;
     }
   }
 
-  if (command[0] == "replconf") {
-    return std::string("+OK\r\n");
-  }
-
-  if (command[0] == "psync") {
-
-    return std::string(
-        "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n");
-  }
-
-  auto it = mem_database.find(command[1]);
-  if (it == mem_database.end()) {
-    // element doesn't exist
-    return std::string("$-1\r\n");
-  } else {
-    auto res = mem_database[command[1]];
-    return std::string("$") + std::to_string(res.size()) + "\r\n" + res +
-           std::string("\r\n");
-  }
+  std::cout << "Finised parsing " << std::endl;
+  for (int i = 0; i < resp.size(); i++)
+    std::cout << resp[i] << ", ";
 }
 
 /**
@@ -479,26 +482,100 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
   while (!closefd) {
     char buff[32] = {};
     int total_written = 0;
-    std::cout << "Listening for message: " << std::endl;
+    std::cout << "Master - Listening for message: " << std::endl;
     std::string req = *(get_full_message(socket_fd));
     if (req.length() <= 1) {
       break;
     }
-    std::cout << "Received message: " << req << std::endl;
+    std::cout << "Master - Received message: " << req << std::endl;
     std::vector<std::string> *all_words = split_by_clrf(req);
-    std::cout << "ARRAY: ";
+    std::cout << "Master - ARRAY: ";
 
     for (std::string word : *all_words) {
       std::cout << word << ", ";
     }
     std::cout << std::endl;
 
-    std::string response = parse_command(*all_words);
-    std::cout << "Server Response: " << response << std::endl;
+    std::vector<std::string> response{};
+    parse_command(*all_words, response);
 
-    send(socket_fd, (void *)response.c_str(), response.size(), 0);
-    follow_up_commands(response, socket_fd);
-    follow_up_slave(*all_words, req);
+    for (int i = 0; i < response.size(); i++) {
+      std::string resp = response[i];
+      std::cout << "Master - Server Response: " << resp << std::endl;
+      send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+      follow_up_commands(resp, socket_fd);
+      follow_up_slave(*all_words, req);
+    }
   }
   close(socket_fd);
+}
+
+void run_handshake() {
+  // Use the current config variable to connect to the master
+  //
+  // Create a file descriptor to connect to the master server. We initialize
+  // it with the same parameters: Ipv4 and reliable socket_stream
+  int replica_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (replica_fd < 0) {
+    std::cerr << "Failed to create replica socket\n";
+    return;
+  }
+
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = string_to_addr(config.master_info.first);
+  server_addr.sin_port = htons(config.master_info.second);
+
+  std::cout << "\nAttemtping to connect to server" << std::endl;
+  int res =
+      connect(replica_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+  if (res < 0) {
+    std::cout << "Failed to connect replica to master\n";
+  }
+
+  std::cout << "Connected to master.\n";
+
+  // HANDSHAKE: PING
+  const char *message{"*1\r\n$4\r\nping\r\n"};
+  send(replica_fd, message, std::string(message).size(), 0);
+  std::string *response_ping = get_full_message(replica_fd);
+
+  const char *repl_conf{
+      "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"};
+  send(replica_fd, repl_conf, std::string(repl_conf).size(), 0);
+  std::string *response_repl_1 = get_full_message(replica_fd);
+
+  const char *repl_conf_2{
+      "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
+  send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
+  std::string *response_repl_2 = get_full_message(replica_fd);
+
+  const char *psync{"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"};
+  send(replica_fd, psync, std::string(psync).size(), 0);
+  std::string *response_psync = get_full_message(replica_fd);
+  std::string *handle_RDB = get_full_message(replica_fd);
+
+  bool closefd = false;
+  // LISTEN to commands from the master and process them like regular commands
+  while (!closefd) {
+    char buff[32] = {};
+    int total_written = 0;
+    std::cout << "Replica - Listening for message..." << std::endl;
+    std::string req = *(get_full_message(replica_fd));
+
+    if (req.length() <= 1) {
+      break;
+    }
+    std::cout << "Replica - Received message: " << req << std::endl;
+    std::vector<std::string> *all_words = split_by_clrf(req);
+    std::cout << "Replica - ARRAY: ";
+
+    for (std::string word : *all_words) {
+      std::cout << word << ", ";
+    }
+    std::cout << std::endl;
+    std::vector<std::string> response{};
+    parse_command(*all_words, response);
+  }
+  close(replica_fd);
 }

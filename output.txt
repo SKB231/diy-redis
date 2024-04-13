@@ -1,0 +1,1625 @@
+Initiating test run...
+
+[33m⏳ Turbo test runners busy. You are in queue.[0m
+[33m[0m
+[33mUpgrade to skip the wait: https://codecrafters.io/turbo[0m
+
+Running tests. Logs should appear shortly...
+
+Debug = true
+
+[33m[stage-1] [0m[94mRunning tests for Stage #1: Bind to a port[0m
+[33m[stage-1] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-1] [0m[94mConnecting to port 6379...[0m
+[33m[stage-1] [0m[36mConnection successful[0m
+[33m[stage-1] [0m[92mTest passed.[0m
+[33m[stage-1] [0m[36mTerminating program[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[stage-1] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-2] [0m[94mRunning tests for Stage #2: Respond to PING[0m
+[33m[stage-2] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-2] [0m[36mConnection established, sending ping command...[0m
+[33m[stage-2] [0m[94m$ redis-cli ping[0m
+[33m[stage-2] [0m[36mSent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mThread Thread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[stage-2] [0m[36mReceived bytes: "+PONG\r\n"[0m
+[33m[stage-2] [0m[36mReceived RESP value: "PONG"[0m
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0m2 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-2] [0m[92mReceived "PONG"[0m
+[33m[stage-2] [0m[92mTest passed.[0m
+[33m[stage-2] [0m[36mTerminating program[0m
+[33m[stage-2] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-3] [0m[94mRunning tests for Stage #3: Respond to multiple PINGs[0m
+[33m[stage-3] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[stage-3] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-3] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-3] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[stage-3] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[stage-3] [0m[92mReceived "PONG"[0m
+[33m[stage-3] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-3] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-3] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[stage-3] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[stage-3] [0m[92mReceived "PONG"[0m
+[33m[stage-3] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-3] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-3] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[stage-3] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[stage-3] [0m[92mReceived "PONG"[0m
+[33m[stage-3] [0m[36mSuccess, closing connection...[0m
+[33m[stage-3] [0m[92mTest passed.[0m
+[33m[stage-3] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[stage-3] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-4] [0m[94mRunning tests for Stage #4: Handle concurrent clients[0m
+[33m[stage-4] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-4] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[stage-4] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[stage-4] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[94mclient-2: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-2: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[stage-4] [0m[36mclient-2: Received bytes: "+PONG\r\n"[0m
+[33m[stage-4] [0m[36mclient-2: Received RESP value: "PONG"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m2 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 1 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[stage-4] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[stage-4] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[94mclient-1: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-1: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[stage-4] [0m[36mclient-1: Received bytes: "+PONG\r\n"[0m
+[33m[stage-4] [0m[36mclient-1: Received RESP value: "PONG"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[94mclient-2: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-2: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-4] [0m[36mclient-2: Received bytes: "+PONG\r\n"[0m
+[33m[stage-4] [0m[36mclient-2: Received RESP value: "PONG"[0m
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[36mclient-1: Success, closing connection...[0m
+[33m[stage-4] [0m[94mclient-3: $ redis-cli ping[0m
+[33m[stage-4] [0m[36mclient-3: Sent bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m3 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[stage-4] [0m[36mclient-3: Received bytes: "+PONG\r\n"[0m
+[33m[stage-4] [0m[36mclient-3: Received RESP value: "PONG"[0m
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mping
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: ping, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[stage-4] [0m[92mReceived "PONG"[0m
+[33m[stage-4] [0m[36mclient-2: Success, closing connection...[0m
+[33m[stage-4] [0m[36mclient-3: Success, closing connection...[0m
+[33m[stage-4] [0m[92mTest passed.[0m
+[33m[stage-4] [0m[36mTerminating program[0m
+[33m[your_program] [0mThread 0 completed the job. Resetting.. 
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[stage-4] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-5] [0m[94mRunning tests for Stage #5: Implement the ECHO command[0m
+[33m[stage-5] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-5] [0m[94m$ redis-cli echo raspberry[0m
+[33m[stage-5] [0m[36mSent bytes: "*2\r\n$4\r\necho\r\n$9\r\nraspberry\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[stage-5] [0m[36mReceived bytes: "+raspberry\r\n"[0m
+[33m[stage-5] [0m[36mReceived RESP value: "raspberry"[0m
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 29
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$4
+[33m[your_program] [0mecho
+[33m[your_program] [0m$9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: echo, raspberry, 
+[33m[your_program] [0mServer Response: +raspberry
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-5] [0m[92mReceived "raspberry"[0m
+[33m[stage-5] [0m[92mTest passed.[0m
+[33m[stage-5] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[stage-5] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-6] [0m[94mRunning tests for Stage #6: Implement the SET & GET commands[0m
+[33m[stage-6] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-6] [0m[36mSetting key blueberry to raspberry[0m
+[33m[stage-6] [0m[94m$ redis-cli set blueberry raspberry[0m
+[33m[stage-6] [0m[36mSent bytes: "*3\r\n$3\r\nset\r\n$9\r\nblueberry\r\n$9\r\nraspberry\r\n"[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[stage-6] [0m[36mReceived bytes: "+OK\r\n"[0m
+[33m[stage-6] [0m[36mReceived RESP value: "OK"[0m
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 43
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mset
+[33m[your_program] [0m$9
+[33m[your_program] [0mblueberry
+[33m[your_program] [0m$9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: set, blueberry, raspberry, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[stage-6] [0m[92mReceived "OK"[0m
+[33m[stage-6] [0m[36mGetting key blueberry[0m
+[33m[stage-6] [0m[94m$ redis-cli get blueberry[0m
+[33m[stage-6] [0m[36mSent bytes: "*2\r\n$3\r\nget\r\n$9\r\nblueberry\r\n"[0m
+[33m[stage-6] [0m[36mReceived bytes: "$9\r\nraspberry\r\n"[0m
+[33m[stage-6] [0m[36mReceived RESP value: "raspberry"[0m
+[33m[your_program] [0mDATA WRITTEN: 28
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mget
+[33m[your_program] [0m$9
+[33m[your_program] [0mblueberry
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: get, blueberry, 
+[33m[your_program] [0mServer Response: $9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-6] [0m[92mReceived "raspberry"[0m
+[33m[stage-6] [0m[92mTest passed.[0m
+[33m[stage-6] [0m[36mTerminating program[0m
+[33m[stage-6] [0m[36mProgram terminated successfully[0m
+
+[33m[stage-7] [0m[94mRunning tests for Stage #7: Expiry[0m
+[33m[stage-7] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[stage-7] [0m[94m$ redis-cli set raspberry blueberry px 100[0m
+[33m[stage-7] [0m[36mSent bytes: "*5\r\n$3\r\nset\r\n$9\r\nraspberry\r\n$9\r\nblueberry\r\n$2\r\npx\r\n$3\r\n100\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 60
+[33m[your_program] [0mReceived message: *5
+[33m[your_program] [0m$3
+[33m[your_program] [0mset
+[33m[your_program] [0m$9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m$9
+[33m[your_program] [0mblueberry
+[33m[your_program] [0m$2
+[33m[your_program] [0mpx
+[33m[your_program] [0m$3
+[33m[your_program] [0m100
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: set, raspberry, blueberry, px, 100, 
+[33m[stage-7] [0m[36mReceived bytes: "+OK\r\n"[0m
+[33m[stage-7] [0m[36mReceived RESP value: "OK"[0m
+[33m[your_program] [0mRunning delayed deletion by 100ms
+[33m[your_program] [0m2 armed
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[stage-7] [0m[92mReceived "OK"[0m
+[33m[stage-7] [0m[92mReceived OK at 20:49:54.182[0m
+[33m[stage-7] [0m[94mFetching key "raspberry" at 20:49:54.182 (should not be expired)[0m
+[33m[stage-7] [0m[94m$ redis-cli get raspberry[0m
+[33m[stage-7] [0m[36mSent bytes: "*2\r\n$3\r\nget\r\n$9\r\nraspberry\r\n"[0m
+[33m[your_program] [0mThread 1 running a job. 
+[33m[your_program] [0mAttempting to delete after 100 milliseconds
+[33m[your_program] [0mDATA WRITTEN: 28
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mget
+[33m[your_program] [0m$9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: get, raspberry, 
+[33m[your_program] [0mServer Response: $9
+[33m[your_program] [0mblueberry
+[33m[your_program] [0m
+[33m[stage-7] [0m[36mReceived bytes: "$9\r\nblueberry\r\n"[0m
+[33m[stage-7] [0m[36mReceived RESP value: "blueberry"[0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-7] [0m[92mReceived "blueberry"[0m
+[33m[stage-7] [0m[36mSleeping for 101ms[0m
+[33m[stage-7] [0m[94mFetching key "raspberry" at 20:49:54.285 (should be expired)[0m
+[33m[stage-7] [0m[94m$ redis-cli get raspberry[0m
+[33m[stage-7] [0m[36mSent bytes: "*2\r\n$3\r\nget\r\n$9\r\nraspberry\r\n"[0m
+[33m[your_program] [0mThread 1 completed the job. Resetting.. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mDATA WRITTEN: 28
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mget
+[33m[your_program] [0m$9
+[33m[your_program] [0mraspberry
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: get, raspberry, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[stage-7] [0m[36mReceived bytes: "$-1\r\n"[0m
+[33m[stage-7] [0m[36mReceived RESP value: NIL[0m
+[33m[stage-7] [0m[92mReceived NIL[0m
+[33m[stage-7] [0m[92mTest passed.[0m
+[33m[stage-7] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[stage-7] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-1] [0m[94mRunning tests for Replication > Stage #1: Configure listening port[0m
+[33m[replication-1] [0m[94m$ ./spawn_redis_server.sh --port 6389[0m
+[33m[replication-1] [0m[94mConnecting to port 6389...[0m
+[33m[replication-1] [0m[36mConnection successful[0m
+[33m[replication-1] [0m[92mTest passed.[0m
+[33m[replication-1] [0m[36mTerminating program[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[replication-1] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-2] [0m[94mRunning tests for Replication > Stage #2: The INFO command[0m
+[33m[replication-2] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[replication-2] [0m[94mclient: $ redis-cli INFO replication[0m
+[33m[replication-2] [0m[36mclient: Sent bytes: "*2\r\n$4\r\nINFO\r\n$11\r\nreplication\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[replication-2] [0m[36mclient: Received bytes: "$85\r\nrole:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0\r\n"[0m
+[33m[replication-2] [0m[36mclient: Received RESP value: "role:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[replication-2] [0m[92mReceived "role:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[replication-2] [0m[92mFound role:master in response.[0m
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 32
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$4
+[33m[your_program] [0mINFO
+[33m[replication-2] [0m[92mTest passed.[0m
+[33m[replication-2] [0m[36mTerminating program[0m
+[33m[your_program] [0m$11
+[33m[your_program] [0mreplication
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: INFO, replication, 
+[33m[your_program] [0mServer Response: $85
+[33m[your_program] [0mrole:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[replication-2] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-3] [0m[94mRunning tests for Replication > Stage #3: The INFO command on a replica[0m
+[33m[replication-3] [0m[94mMaster is running on port 6379[0m
+[33m[replication-3] [0m[94m$ ./spawn_redis_server.sh --port 6380 --replicaof localhost 6379[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[replication-3] [0m[36mmaster: Received bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Received RESP value: ["ping"][0m
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0m
+[33m[your_program] [0mAttemtping to connect to server
+[33m[replication-3] [0m[94mmaster: Sent "PONG"[0m
+[33m[replication-3] [0m[36mmaster: Sent bytes: "+PONG\r\n"[0m
+[33m[your_program] [0mConnected to master.
+[33m[your_program] [0mDATA WRITTEN: 7
+[33m[replication-3] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Received RESP value: ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-3] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-3] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Received RESP value: ["REPLCONF", "capa", "psync2"][0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-3] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-3] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-3] [0m[36mmaster: Received bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Received RESP value: ["PSYNC", "?", "-1"][0m
+[33m[replication-3] [0m[94mmaster: Sent "FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0"[0m
+[33m[replication-3] [0m[36mmaster: Sent bytes: "+FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0\r\n"[0m
+[33m[replication-3] [0m[36mmaster: Sent bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[your_program] [0mDATA WRITTEN: 149
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[your_program] [0mListening for message Replica: 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[replication-3] [0m[94mclient: $ redis-cli INFO replication[0m
+[33m[replication-3] [0m[36mclient: Sent bytes: "*2\r\n$4\r\nINFO\r\n$11\r\nreplication\r\n"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mThread Waiting for a client to connect...
+[33m[your_program] [0m0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 32
+[33m[replication-3] [0m[36mclient: Received bytes: "$84\r\nrole:slavemaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0\r\n"[0m
+[33m[replication-3] [0m[36mclient: Received RESP value: "role:slavemaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[replication-3] [0m[92mReceived "role:slavemaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$4
+[33m[your_program] [0mINFO
+[33m[your_program] [0m$11
+[33m[your_program] [0mreplication
+[33m[your_program] [0m
+[33m[replication-3] [0m[92mFound role:slave in response.[0m
+[33m[your_program] [0mARRAY: INFO, replication, 
+[33m[your_program] [0mServer Response: $84
+[33m[replication-3] [0m[92mTest passed.[0m
+[33m[replication-3] [0m[36mTerminating program[0m
+[33m[your_program] [0mrole:slavemaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-3] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-4] [0m[94mRunning tests for Replication > Stage #4: Initial Replication ID and Offset[0m
+[33m[replication-4] [0m[94m$ ./spawn_redis_server.sh[0m
+[33m[replication-4] [0m[94mclient: $ redis-cli INFO replication[0m
+[33m[replication-4] [0m[36mclient: Sent bytes: "*2\r\n$4\r\nINFO\r\n$11\r\nreplication\r\n"[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[replication-4] [0m[36mclient: Received bytes: "$85\r\nrole:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0\r\n"[0m
+[33m[replication-4] [0m[36mclient: Received RESP value: "role:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[replication-4] [0m[92mReceived "role:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0"[0m
+[33m[replication-4] [0m[92mFound master_replid:xxx in response.[0m
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[replication-4] [0m[92mFound master_reploffset:0 in response.[0m
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[replication-4] [0m[92mTest passed.[0m
+[33m[replication-4] [0m[36mTerminating program[0m
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 32
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$4
+[33m[your_program] [0mINFO
+[33m[your_program] [0m$11
+[33m[your_program] [0mreplication
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: INFO, replication, 
+[33m[your_program] [0mServer Response: $85
+[33m[your_program] [0mrole:mastermaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeebmaster_repl_offset:0
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-4] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-5] [0m[94mRunning tests for Replication > Stage #5: Send handshake (1/3)[0m
+[33m[replication-5] [0m[94mMaster is running on port 6379.[0m
+[33m[replication-5] [0m[94m$ ./spawn_redis_server.sh --port 6380 --replicaof localhost 6379[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[replication-5] [0m[36mmaster: Received bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[replication-5] [0m[36mmaster: Received RESP value: ["ping"][0m
+[33m[replication-5] [0m[92mReceived ["ping"][0m
+[33m[your_program] [0m
+[33m[your_program] [0mAttemtping to connect to server
+[33m[replication-5] [0m[94mmaster: Sent "PONG"[0m
+[33m[replication-5] [0m[36mmaster: Sent bytes: "+PONG\r\n"[0m
+[33m[replication-5] [0m[92mTest passed.[0m
+[33m[replication-5] [0m[36mTerminating program[0m
+[33m[replication-5] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-6] [0m[94mRunning tests for Replication > Stage #6: Send handshake (2/3)[0m
+[33m[replication-6] [0m[94mMaster is running on port 6379[0m
+[33m[replication-6] [0m[94m$ ./spawn_redis_server.sh --port 6380 --replicaof localhost 6379[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0m
+[33m[your_program] [0mAttemtping to connect to server
+[33m[replication-6] [0m[36mmaster: Received bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[replication-6] [0m[36mmaster: Received RESP value: ["ping"][0m
+[33m[replication-6] [0m[92mReceived ["ping"][0m
+[33m[replication-6] [0m[94mmaster: Sent "PONG"[0m
+[33m[replication-6] [0m[36mmaster: Sent bytes: "+PONG\r\n"[0m
+[33m[your_program] [0mConnected to master.
+[33m[your_program] [0mDATA WRITTEN: 7
+[33m[replication-6] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-6] [0m[36mmaster: Received RESP value: ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-6] [0m[92mReceived ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-6] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-6] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-6] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-6] [0m[36mmaster: Received RESP value: ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-6] [0m[92mReceived ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-6] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-6] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[replication-6] [0m[92mTest passed.[0m
+[33m[replication-6] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-6] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-7] [0m[94mRunning tests for Replication > Stage #7: Send handshake (3/3)[0m
+[33m[replication-7] [0m[94mMaster is running on port 6379[0m
+[33m[replication-7] [0m[94m$ ./spawn_redis_server.sh --port 6380 --replicaof localhost 6379[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0m
+[33m[your_program] [0mAttemtping to connect to server
+[33m[replication-7] [0m[36mmaster: Received bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[replication-7] [0m[36mmaster: Received RESP value: ["ping"][0m
+[33m[replication-7] [0m[92mReceived ["ping"][0m
+[33m[replication-7] [0m[94mmaster: Sent "PONG"[0m
+[33m[replication-7] [0m[36mmaster: Sent bytes: "+PONG\r\n"[0m
+[33m[your_program] [0mConnected to master.
+[33m[your_program] [0mDATA WRITTEN: 7
+[33m[replication-7] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-7] [0m[36mmaster: Received RESP value: ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-7] [0m[92mReceived ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-7] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-7] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-7] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-7] [0m[36mmaster: Received RESP value: ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-7] [0m[92mReceived ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-7] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-7] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-7] [0m[36mmaster: Received bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-7] [0m[36mmaster: Received RESP value: ["PSYNC", "?", "-1"][0m
+[33m[replication-7] [0m[92mReceived ["PSYNC", "?", "-1"][0m
+[33m[replication-7] [0m[94mmaster: Sent "FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0"[0m
+[33m[replication-7] [0m[36mmaster: Sent bytes: "+FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0\r\n"[0m
+[33m[replication-7] [0m[92mTest passed.[0m
+[33m[replication-7] [0m[36mTerminating program[0m
+[33m[replication-7] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-8] [0m[94mRunning tests for Replication > Stage #8: Receive handshake (1/2)[0m
+[33m[replication-8] [0m[94m$ ./spawn_redis_server.sh --port 6379[0m
+[33m[replication-8] [0m[94mclient: $ redis-cli PING[0m
+[33m[replication-8] [0m[36mclient: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[replication-8] [0m[36mclient: Received bytes: "+PONG\r\n"[0m
+[33m[replication-8] [0m[36mclient: Received RESP value: "PONG"[0m
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-8] [0m[92mReceived "PONG"[0m
+[33m[replication-8] [0m[94mclient: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-8] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[replication-8] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-8] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-8] [0m[92mReceived "OK"[0m
+[33m[replication-8] [0m[94mclient: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-8] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[replication-8] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-8] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-8] [0m[92mReceived "OK"[0m
+[33m[replication-8] [0m[92mTest passed.[0m
+[33m[replication-8] [0m[36mTerminating program[0m
+[33m[replication-8] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-9] [0m[94mRunning tests for Replication > Stage #9: Receive handshake (2/2)[0m
+[33m[replication-9] [0m[94m$ ./spawn_redis_server.sh --port 6379[0m
+[33m[replication-9] [0m[94mclient: $ redis-cli PING[0m
+[33m[replication-9] [0m[36mclient: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mThread Logs from your program will appear here!
+[33m[your_program] [0m0 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-9] [0m[36mclient: Received bytes: "+PONG\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received RESP value: "PONG"[0m
+[33m[replication-9] [0m[92mReceived "PONG"[0m
+[33m[replication-9] [0m[94mclient: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-9] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[replication-9] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-9] [0m[92mReceived "OK"[0m
+[33m[replication-9] [0m[94mclient: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-9] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-9] [0m[92mReceived "OK"[0m
+[33m[replication-9] [0m[94mclient: $ redis-cli PSYNC ? -1[0m
+[33m[replication-9] [0m[36mclient: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-9] [0m[36mclient: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-9] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-9] [0m[92mTest passed.[0m
+[33m[replication-9] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-9] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-10] [0m[94mRunning tests for Replication > Stage #10: Empty RDB Transfer[0m
+[33m[replication-10] [0m[94m$ ./spawn_redis_server.sh --port 6379[0m
+[33m[replication-10] [0m[94mclient: $ redis-cli PING[0m
+[33m[replication-10] [0m[36mclient: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[replication-10] [0m[36mclient: Received bytes: "+PONG\r\n"[0m
+[33m[replication-10] [0m[36mclient: Received RESP value: "PONG"[0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-10] [0m[92mReceived "PONG"[0m
+[33m[replication-10] [0m[94mclient: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-10] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[replication-10] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-10] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-10] [0m[92mReceived "OK"[0m
+[33m[replication-10] [0m[94mclient: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-10] [0m[36mclient: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-10] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-10] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-10] [0m[92mReceived "OK"[0m
+[33m[replication-10] [0m[94mclient: $ redis-cli PSYNC ? -1[0m
+[33m[replication-10] [0m[36mclient: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[replication-10] [0m[36mclient: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-10] [0m[36mclient: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[replication-10] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-10] [0m[36mReading RDB file...[0m
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-10] [0m[36mclient: Received bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-10] [0m[92mReceived RDB file[0m
+[33m[replication-10] [0m[92mTest passed.[0m
+[33m[replication-10] [0m[36mTerminating program[0m
+[33m[replication-10] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-11] [0m[94mRunning tests for Replication > Stage #11: Single-replica propagation[0m
+[33m[replication-11] [0m[94m$ ./spawn_redis_server.sh --port 6379[0m
+[33m[replication-11] [0m[94mreplica: $ redis-cli PING[0m
+[33m[replication-11] [0m[36mreplica: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[replication-11] [0m[36mreplica: Received bytes: "+PONG\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: "PONG"[0m
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m2 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 1 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "PONG"[0m
+[33m[replication-11] [0m[94mreplica: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-11] [0m[36mreplica: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "+OK\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "OK"[0m
+[33m[replication-11] [0m[94mreplica: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-11] [0m[36mreplica: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "+OK\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "OK"[0m
+[33m[replication-11] [0m[94mreplica: $ redis-cli PSYNC ? -1[0m
+[33m[replication-11] [0m[36mreplica: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-11] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-11] [0m[36mReading RDB file...[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[36mreplica: Received bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-11] [0m[92mReceived RDB file[0m
+[33m[replication-11] [0m[94mclient: $ redis-cli SET foo 123[0m
+[33m[replication-11] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mfoo
+[33m[your_program] [0m$3
+[33m[your_program] [0m123
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, foo, 123, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "OK"[0m
+[33m[replication-11] [0m[94mclient: $ redis-cli SET bar 456[0m
+[33m[replication-11] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m$3
+[33m[your_program] [0m456
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, bar, 456, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "OK"[0m
+[33m[replication-11] [0m[94mclient: $ redis-cli SET baz 789[0m
+[33m[replication-11] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-11] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbaz
+[33m[your_program] [0m$3
+[33m[your_program] [0m789
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, baz, 789, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-11] [0m[92mReceived "OK"[0m
+[33m[replication-11] [0m[92mSent 3 SET commands to master successfully.[0m
+[33m[replication-11] [0m[94mreplica: Expecting SET foo 123 to be propagated[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: ["SET", "foo", "123"][0m
+[33m[replication-11] [0m[92mReceived ["SET", "foo", "123"][0m
+[33m[replication-11] [0m[94mreplica: Expecting SET bar 456 to be propagated[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: ["SET", "bar", "456"][0m
+[33m[replication-11] [0m[92mReceived ["SET", "bar", "456"][0m
+[33m[replication-11] [0m[94mreplica: Expecting SET baz 789 to be propagated[0m
+[33m[replication-11] [0m[36mreplica: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-11] [0m[36mreplica: Received RESP value: ["SET", "baz", "789"][0m
+[33m[replication-11] [0m[92mReceived ["SET", "baz", "789"][0m
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[your_program] [0mThread 0 completed the job. Resetting.. 
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[replication-11] [0m[92mTest passed.[0m
+[33m[replication-11] [0m[36mTerminating program[0m
+[33m[replication-11] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-12] [0m[94mRunning tests for Replication > Stage #12: Multi Replica Command Propagation[0m
+[33m[replication-12] [0m[94m$ ./spawn_redis_server.sh --port 6379[0m
+[33m[replication-12] [0m[36mCreating replica: 1[0m
+[33m[replication-12] [0m[94mreplica-1: $ redis-cli PING[0m
+[33m[replication-12] [0m[36mreplica-1: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m2 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 1 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "+PONG\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: "PONG"[0m
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "PONG"[0m
+[33m[replication-12] [0m[94mreplica-1: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-12] [0m[36mreplica-1: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-1: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-12] [0m[36mreplica-1: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-1: $ redis-cli PSYNC ? -1[0m
+[33m[replication-12] [0m[36mreplica-1: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[36mReading RDB file...[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-12] [0m[92mReceived RDB file[0m
+[33m[replication-12] [0m[36mCreating replica: 2[0m
+[33m[replication-12] [0m[94mreplica-2: $ redis-cli PING[0m
+[33m[replication-12] [0m[36mreplica-2: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m3 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 2 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "+PONG\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: "PONG"[0m
+[33m[replication-12] [0m[92mReceived "PONG"[0m
+[33m[replication-12] [0m[94mreplica-2: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-12] [0m[36mreplica-2: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: "OK"[0m
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-2: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-12] [0m[36mreplica-2: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: "OK"[0m
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-2: $ redis-cli PSYNC ? -1[0m
+[33m[replication-12] [0m[36mreplica-2: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[36mReading RDB file...[0m
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-12] [0m[92mReceived RDB file[0m
+[33m[replication-12] [0m[36mCreating replica: 3[0m
+[33m[replication-12] [0m[94mreplica-3: $ redis-cli PING[0m
+[33m[replication-12] [0m[36mreplica-3: Sent bytes: "*1\r\n$4\r\nPING\r\n"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m0 armed
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "+PONG\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: "PONG"[0m
+[33m[your_program] [0mThread 3 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 14
+[33m[your_program] [0mReceived message: *1
+[33m[your_program] [0m$4
+[33m[your_program] [0mPING
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PING, 
+[33m[your_program] [0mServer Response: +PONG
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "PONG"[0m
+[33m[replication-12] [0m[94mreplica-3: $ redis-cli REPLCONF listening-port 6380[0m
+[33m[replication-12] [0m[36mreplica-3: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 49
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$14
+[33m[your_program] [0mlistening-port
+[33m[your_program] [0m$4
+[33m[your_program] [0m6380
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, listening-port, 6380, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-3: $ redis-cli REPLCONF capa psync2[0m
+[33m[replication-12] [0m[36mreplica-3: Sent bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 40
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$8
+[33m[your_program] [0mREPLCONF
+[33m[your_program] [0m$4
+[33m[your_program] [0mcapa
+[33m[your_program] [0m$6
+[33m[your_program] [0mpsync2
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: REPLCONF, capa, psync2, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: "OK"[0m
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mreplica-3: $ redis-cli PSYNC ? -1[0m
+[33m[replication-12] [0m[36mreplica-3: Sent bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 30
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$5
+[33m[your_program] [0mPSYNC
+[33m[your_program] [0m$1
+[33m[your_program] [0m?
+[33m[your_program] [0m$2
+[33m[your_program] [0m-1
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: PSYNC, ?, -1, 
+[33m[your_program] [0mServer Response: +FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0
+[33m[your_program] [0m
+[33m[your_program] [0mSEND Empty RDB File:Using size: 88
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[92mReceived "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0"[0m
+[33m[replication-12] [0m[36mReading RDB file...[0m
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-12] [0m[92mReceived RDB file[0m
+[33m[replication-12] [0m[94mclient: $ redis-cli SET foo 123[0m
+[33m[replication-12] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mfoo
+[33m[your_program] [0m$3
+[33m[your_program] [0m123
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, foo, 123, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mclient: $ redis-cli SET bar 456[0m
+[33m[replication-12] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m$3
+[33m[your_program] [0m456
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, bar, 456, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mclient: $ redis-cli SET baz 789[0m
+[33m[replication-12] [0m[36mclient: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received bytes: "+OK\r\n"[0m
+[33m[replication-12] [0m[36mclient: Received RESP value: "OK"[0m
+[33m[your_program] [0mDATA WRITTEN: 31
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbaz
+[33m[your_program] [0m$3
+[33m[your_program] [0m789
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, baz, 789, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mPropogating request to slaves: 
+[33m[your_program] [0mListening for message: 
+[33m[replication-12] [0m[92mReceived "OK"[0m
+[33m[replication-12] [0m[94mTesting Replica: 1/3[0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[36mreplica-1: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-12] [0m[36mreplica-1: Received RESP value: ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[94mTesting Replica: 2/3[0m
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[36mreplica-2: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-12] [0m[36mreplica-2: Received RESP value: ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[94mTesting Replica: 3/3[0m
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "foo", "123"][0m
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "bar", "456"][0m
+[33m[replication-12] [0m[36mreplica-3: Received bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-12] [0m[36mreplica-3: Received RESP value: ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[92mReceived ["SET", "baz", "789"][0m
+[33m[replication-12] [0m[92mTest passed.[0m
+[33m[replication-12] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: DATA WRITTEN: 0
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[your_program] [0mThread 1 completed the job. Resetting.. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 completed the job. Resetting.. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mDATA WRITTEN: 0
+[33m[replication-12] [0m[36mProgram terminated successfully[0m
+
+[33m[replication-13] [0m[94mRunning tests for Replication > Stage #13: Command Processing[0m
+[33m[replication-13] [0m[94mMaster is running on port 6379[0m
+[33m[replication-13] [0m[94m$ ./spawn_redis_server.sh --port 6380 --replicaof localhost 6379[0m
+[33m[your_program] [0mThread 0 waiting for job. 
+[33m[your_program] [0mThread 1 waiting for job. 
+[33m[your_program] [0mThread 2 waiting for job. 
+[33m[your_program] [0mLogs from your program will appear here!
+[33m[your_program] [0mThread 3 waiting for job. 
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0m
+[33m[your_program] [0mAttemtping to connect to server
+[33m[replication-13] [0m[36mmaster: Received bytes: "*1\r\n$4\r\nping\r\n"[0m
+[33m[replication-13] [0m[36mmaster: Received RESP value: ["ping"][0m
+[33m[replication-13] [0m[92mReceived ["ping"][0m
+[33m[replication-13] [0m[94mmaster: Sent "PONG"[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "+PONG\r\n"[0m
+[33m[replication-13] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"[0m
+[33m[replication-13] [0m[36mmaster: Received RESP value: ["REPLCONF", "listening-port", "6380"][0m
+[33m[replication-13] [0m[92mReceived ["REPLCONF", "listening-port", "6380"][0m
+[33m[your_program] [0mConnected to master.
+[33m[your_program] [0mDATA WRITTEN: 7
+[33m[replication-13] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-13] [0m[36mmaster: Received bytes: "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"[0m
+[33m[replication-13] [0m[36mmaster: Received RESP value: ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-13] [0m[92mReceived ["REPLCONF", "capa", "psync2"][0m
+[33m[replication-13] [0m[94mmaster: Sent "OK"[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "+OK\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 5
+[33m[replication-13] [0m[36mmaster: Received bytes: "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"[0m
+[33m[replication-13] [0m[36mmaster: Received RESP value: ["PSYNC", "?", "-1"][0m
+[33m[replication-13] [0m[92mReceived ["PSYNC", "?", "-1"][0m
+[33m[replication-13] [0m[94mmaster: Sent "FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0"[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "+FULLRESYNC 75cd7bc10c49047e0d163660f3b90625b1af31dc 0\r\n"[0m
+[33m[replication-13] [0m[36mSending RDB file...[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "$88\r\nREDIS0011\xfa\tredis-ver\x057.2.0\xfa\nredis-bits\xc0@\xfa\x05ctime\xc2m\b\xbce\xfa\bused-mem°\xc4\x10\x00\xfa\baof-base\xc0\x00\xff\xf0n;\xfe\xc0\xffZ\xa2"[0m
+[33m[replication-13] [0m[92mSent RDB file.[0m
+[33m[your_program] [0mDATA WRITTEN: 56
+[33m[your_program] [0mDATA WRITTEN: 93
+[33m[your_program] [0mListening for message Replica: 
+[33m[replication-13] [0m[94mmaster: $ redis-cli SET foo 123[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n"[0m
+[33m[replication-13] [0m[94mmaster: $ redis-cli SET bar 456[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n"[0m
+[33m[replication-13] [0m[94mmaster: $ redis-cli SET baz 789[0m
+[33m[replication-13] [0m[36mmaster: Sent bytes: "*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n"[0m
+[33m[replication-13] [0m[94mGetting key foo[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET foo[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n"[0m
+[33m[your_program] [0mClient connected
+[33m[your_program] [0m1 armed
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0mWaiting for a client to connect...
+[33m[your_program] [0mThread 0 running a job. 
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mfoo
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, foo, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[your_program] [0mDATA WRITTEN: 93
+[33m[your_program] [0mReceived message: *3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mfoo
+[33m[your_program] [0m$3
+[33m[your_program] [0m123
+[33m[your_program] [0m*3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m$3
+[33m[your_program] [0m456
+[33m[your_program] [0m*3
+[33m[your_program] [0m$3
+[33m[your_program] [0mSET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbaz
+[33m[your_program] [0m$3
+[33m[your_program] [0m789
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: SET, foo, 123, SET, bar, 456, SET, baz, 789, 
+[33m[your_program] [0mServer Response: +OK
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message Replica: 
+[33m[replication-13] [0m[36mRetrying... (1/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET foo[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received bytes: "$3\r\n123\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: "123"[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mfoo
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, foo, 
+[33m[your_program] [0mServer Response: $3
+[33m[your_program] [0m123
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[92mReceived "123"[0m
+[33m[replication-13] [0m[94mGetting key bar[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[36mRetrying... (1/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[36mRetrying... (2/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[replication-13] [0m[36mRetrying... (3/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[36mRetrying... (4/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[36mRetrying... (5/5 attempts)[0m
+[33m[replication-13] [0m[94mclient: $ redis-cli GET bar[0m
+[33m[replication-13] [0m[36mclient: Sent bytes: "*2\r\n$3\r\nGET\r\n$3\r\nbar\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received bytes: "$-1\r\n"[0m
+[33m[replication-13] [0m[36mclient: Received RESP value: NIL[0m
+[33m[your_program] [0mDATA WRITTEN: 22
+[33m[your_program] [0mReceived message: *2
+[33m[your_program] [0m$3
+[33m[your_program] [0mGET
+[33m[your_program] [0m$3
+[33m[your_program] [0mbar
+[33m[your_program] [0m
+[33m[your_program] [0mARRAY: GET, bar, 
+[33m[your_program] [0mServer Response: $-1
+[33m[your_program] [0m
+[33m[your_program] [0mListening for message: 
+[33m[replication-13] [0m[91mExpected simple string or bulk string, got NIL[0m
+[33m[replication-13] [0m[91mTest failed[0m
+[33m[replication-13] [0m[36mTerminating program[0m
+[33m[your_program] [0mDATA WRITTEN: -1
+[33m[replication-13] [0m[36mProgram terminated successfully[0m
+
+View stage instructions: https://app.codecrafters.io/courses/redis.
