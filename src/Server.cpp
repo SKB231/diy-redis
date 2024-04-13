@@ -147,6 +147,7 @@ public:
   enum { master, slave } server_role;
   int server_port;
   std::pair<std::string, int> master_info;
+  std::vector<int> replica_fd{};
 };
 
 Config_Settings parse_arguments(int argc, char **argv) {
@@ -456,6 +457,20 @@ void follow_up_commands(std::string sent_command, int socket_fd) {
       resp += binary_file[i];
     }
     send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+
+    // Since this indicates an additional replica, add this to the
+    // config_settings slave file descriptors
+    config.replica_fd.push_back(socket_fd);
+  }
+}
+
+void follow_up_slave(std::vector<std::string> &req, std::string original_req) {
+  if (config.server_role == Config_Settings::slave || req[0] != "set")
+    return;
+
+  std::cout << "Propogating request to slaves: " << std::endl;
+  for (auto fd : config.replica_fd) {
+    send(fd, (void *)original_req.c_str(), original_req.size(), 0);
   }
 }
 
@@ -482,8 +497,8 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     std::cout << "Server Response: " << response << std::endl;
 
     send(socket_fd, (void *)response.c_str(), response.size(), 0);
-
     follow_up_commands(response, socket_fd);
+    follow_up_slave(*all_words, req);
   }
   close(socket_fd);
 }
