@@ -415,6 +415,50 @@ std::string parse_command(std::vector<std::string> &command) {
   }
 }
 
+/**
+ * convert_to_binary converts a hex string into an array of bytes containing the
+ * data. Note that the bytes are packed in little endian format and set the
+ * buffer
+ *
+ */
+char *convert_to_binary(std::string hex) {
+  std::unordered_map<char, char> hex_binary_map{
+      {'0', 0},  {'1', 1},  {'2', 2},  {'3', 3},  {'4', 4},  {'5', 5},
+      {'6', 6},  {'7', 7},  {'8', 8},  {'9', 9},  {'a', 10}, {'b', 11},
+      {'c', 12}, {'d', 13}, {'e', 14}, {'f', 15},
+  };
+  std::cout << "Using size: " << hex.size() / 2 << std::endl;
+  char *buf = new char[hex.size() / 2];
+
+  for (int i = 0; i < hex.size(); i += 2) {
+    int idx = i / 2;
+    char byte = hex_binary_map[hex[i]];
+    byte = byte << 4;
+    byte += hex_binary_map[hex[i + 1]];
+    buf[idx] = byte;
+  }
+  return buf;
+}
+
+void follow_up_commands(std::string sent_command, int socket_fd) {
+  if (sent_command.substr(0, 11) == "+FULLRESYNC") {
+    std::cout << "SEND Empty RDB File:";
+    std::string empty_rdb_file_hex =
+        "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62"
+        "697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa0861"
+        "6f662d62617365c000fff06e3bfec0ff5aa2";
+
+    char *binary_file = convert_to_binary(empty_rdb_file_hex);
+    int size = empty_rdb_file_hex.size() / 2;
+
+    std::string resp = "$" + std::to_string(size) + "\r\n";
+    for (int i = 0; i < size; i++) {
+      resp += binary_file[i];
+    }
+    send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
+  }
+}
+
 void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
@@ -436,7 +480,10 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
 
     std::string response = parse_command(*all_words);
     std::cout << "Server Response: " << response << std::endl;
+
     send(socket_fd, (void *)response.c_str(), response.size(), 0);
+
+    follow_up_commands(response, socket_fd);
   }
   close(socket_fd);
 }
