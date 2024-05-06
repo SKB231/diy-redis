@@ -50,9 +50,7 @@ public:
       // If cv is notified, then run the function with the parameters
       std::unique_lock lk(worker.m);
 
-      std::cout << "Thread " << worker.id << " waiting for job. \n";
       worker.cv.wait(lk);
-      std::cout << "Thread " << worker.id << " running a job. \n";
 
       if (worker.job_type == Job_Type::connection) {
 
@@ -61,9 +59,6 @@ public:
         // Unlock m and reset params for use in next iteration
         worker.params = std::pair<int, struct sockaddr_in *>{};
       } else {
-
-        std::cout << "Attempting to delete after "
-                  << worker.params_deletion.first << " milliseconds\n";
 
         std::this_thread::sleep_for(
             std::chrono::milliseconds(worker.params_deletion.first));
@@ -74,8 +69,6 @@ public:
 
       lk.unlock();
       // run the function
-      std::cout << "Thread " << worker.id
-                << " completed the job. Resetting.. \n";
     }
   }
 };
@@ -120,7 +113,6 @@ public:
     workers[thread_index]->params = params;
     workers[thread_index]->cv.notify_one();
     thread_index = (thread_index + 1) % workers.size();
-    std::cout << thread_index << " armed" << std::endl;
   }
 
   void run_deletion(std::pair<int, std::string> &params_deletion) {
@@ -131,7 +123,6 @@ public:
     workers[thread_index]->job_type = Worker::Job_Type::deleter;
     workers[thread_index]->cv.notify_one();
     thread_index = (thread_index + 1) % workers.size();
-    std::cout << thread_index << " armed" << std::endl;
   }
 
   ~Master() {
