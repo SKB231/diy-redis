@@ -1,14 +1,16 @@
+#include "string_utils.h"
 #include <arpa/inet.h>
+#include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <new>
-#include <stdio.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -18,25 +20,11 @@
 #include <utility>
 #include <vector>
 
-struct Config_Settings {
-public:
-  enum { master, slave } server_role;
-  int server_port;
-  std::pair<std::string, int> master_info;
-  std::vector<int> replica_fd{};
-};
-
-struct connection_params {
-  int fd;
-  bool is_master;
-  struct sockaddr_in *addr;
-};
-
 // Function prototypes:
-void handle(struct connection_params *params);
+void handle(int socket_fd, struct sockaddr_in *client_addr);
 void run_handshake();
 
-std::string *get_full_message(int socket_fd, std::string caller);
+std::string *get_full_message(int socket_fd);
 void test_handle(int socket_fd, struct sockaddr_in *client_addr);
 
 // Global Variables:
@@ -45,7 +33,7 @@ std::unordered_map<std::string, std::string> mem_database{};
 class Worker {
 
 public:
-  struct connection_params *params;
+  std::pair<int, struct sockaddr_in *> params;
   std::pair<int, std::string> params_deletion;
   enum Job_Type {
     connection,
@@ -63,15 +51,20 @@ public:
       // If cv is notified, then run the function with the parameters
       std::unique_lock lk(worker.m);
 
+      // std::cout << "Thread " << worker.id << " waiting for job. \n";
       worker.cv.wait(lk);
+      // std::cout << "Thread " << worker.id << " running a job. \n";
 
       if (worker.job_type == Job_Type::connection) {
 
-        handle(worker.params);
+        handle(worker.params.first, worker.params.second);
 
         // Unlock m and reset params for use in next iteration
-        worker.params = {};
+        worker.params = std::pair<int, struct sockaddr_in *>{};
       } else {
+
+        // std::cout << "Attempting to delete after "
+        //<< worker.params_deletion.first << " milliseconds\n";
 
         std::this_thread::sleep_for(
             std::chrono::milliseconds(worker.params_deletion.first));
@@ -82,6 +75,8 @@ public:
 
       lk.unlock();
       // run the function
+      // std::cout << "Thread " << worker.id
+      // << " completed the job. Resetting.. \n";
     }
   }
 };
@@ -119,13 +114,14 @@ public:
   Master &operator=(const Master &master) = delete;
   Master(const Master &master) = delete;
 
-  void run_connection(struct connection_params *params) {
+  void run_connection(std::pair<int, struct sockaddr_in *> &params) {
 
     std::lock_guard<std::mutex> guard(
         worker_lock); // Use guard to lock worker vector usage
     workers[thread_index]->params = params;
     workers[thread_index]->cv.notify_one();
     thread_index = (thread_index + 1) % workers.size();
+    // std::cout << thread_index << " armed" << std::endl;
   }
 
   void run_deletion(std::pair<int, std::string> &params_deletion) {
@@ -136,6 +132,7 @@ public:
     workers[thread_index]->job_type = Worker::Job_Type::deleter;
     workers[thread_index]->cv.notify_one();
     thread_index = (thread_index + 1) % workers.size();
+    // std::cout << thread_index << " armed" << std::endl;
   }
 
   ~Master() {
@@ -149,6 +146,14 @@ public:
 // Our threads
 Master master = Master(4);
 
+struct Config_Settings {
+public:
+  enum { master, slave } server_role;
+  int server_port;
+  std::pair<std::string, int> master_info;
+  std::vector<int> replica_fd{};
+};
+
 Config_Settings parse_arguments(int argc, char **argv) {
   if (argc == 1) {
     return Config_Settings{Config_Settings::master, 6379, {}};
@@ -157,8 +162,13 @@ Config_Settings parse_arguments(int argc, char **argv) {
 
   config_settings.server_port = 6379;
   for (int i = 1; i < argc - 1; i++) {
+
     std::string query = std::string(argv[i]);
     std::string val = std::string(argv[i + 1]);
+
+    std::cout << query << " " << (query == "--replicaof") << " "
+              << (i + 2 < argc) << std::endl;
+
     if (query == "--port") {
       try {
         size_t siz{};
@@ -168,12 +178,26 @@ Config_Settings parse_arguments(int argc, char **argv) {
         std::cout << "Param conversion error\n";
         std::cout << e.what();
       }
-    } else if (query == "--replicaof" && (i + 2 < argc)) {
+    } else if (query == "--replicaof") {
       // Slave settings
       config_settings.server_role = Config_Settings::slave;
-      std::string master_port_int = std::string(argv[i + 2]);
 
-      config_settings.master_info = {val, 0};
+      std::vector<std::string> master_info{};
+
+      split_string(argv[i + 1], ' ', master_info);
+
+      std::cout << "Finished parsing master information \n";
+
+      for (auto str : master_info)
+        std::cout << str << ", ";
+
+      std::cout << std::endl;
+
+      if (master_info.size() < 2) {
+      }
+      std::string master_port_int = master_info[1];
+
+      config_settings.master_info = {master_info[0], 0};
       try {
         size_t siz{};
         // std::cout << "Converting: " << val << std::endl;
@@ -237,8 +261,8 @@ int main(int argc, char **argv) {
   }
 
   if (config.server_role == Config_Settings::slave) {
-    std::cout << "Reached here!";
-    run_handshake();
+    new std::thread{run_handshake}; // run handshake in a seperate thread
+                                    // without requirement to destroy
   }
 
   struct sockaddr_in client_addr;
@@ -254,19 +278,15 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connected\n";
     // handle(client_fd, (struct sockaddr_in *)&client_addr);
-    // std::pair<int, struct sockaddr_in *> params{
-    //    client_fd, (struct sockaddr_in *)&client_addr};
-
-    struct connection_params *params = new connection_params{
-        client_fd, config.server_role == Config_Settings::master,
-        (struct sockaddr_in *)&client_addr};
+    std::pair<int, struct sockaddr_in *> params{
+        client_fd, (struct sockaddr_in *)&client_addr};
     master.run_connection(params);
   }
 
   return 0;
 }
 
-std::string *get_full_message(int socket_fd, std::string caller) {
+std::string *get_full_message(int socket_fd) {
   int data_written = 1;
   std::string *final_string = new std::string("");
   char buff[256];
@@ -274,8 +294,8 @@ std::string *get_full_message(int socket_fd, std::string caller) {
   for (int i = 0; i < data_written; i++) {
     *final_string += buff[i];
   }
-  std::cout << caller << "DATA WRITTEN: " << data_written << " "
-            << *final_string << std::endl;
+  std::cout << "DATA WRITTEN: " << data_written << " " << *final_string
+            << std::endl;
   return final_string;
 }
 
@@ -302,13 +322,15 @@ std::string get_resp_bulkstring(std::string word) {
 }
 
 void parse_command(std::vector<std::string> &command,
-                   std::vector<std::string> &resp, std::string caller) {
+                   std::vector<std::string> &resp) {
   for (int i = 0; i < command.size();) {
     // We currently are in the COMMAND string. The remaining words need to be
     // unaltered to ensure case-sensitivity
     for (int j = 0; j < command[i].size(); j++) {
       command[i][j] = std::tolower(command[i][j]);
     }
+
+    std::cout << "Parsing command: " << command[i] << std::endl;
 
     if (command[i] == "echo") {
       // return "+" + command[1] + "\r\n";
@@ -342,9 +364,6 @@ void parse_command(std::vector<std::string> &command,
         lifetime = std::stoi(command[i + 4], &pos);
         skip_amount += 2;
       }
-
-      std::cout << caller << "setting " << command[i + 1] << " to "
-                << command[i + 2] << std::endl;
 
       mem_database[command[i + 1]] = command[i + 2];
 
@@ -416,6 +435,8 @@ void parse_command(std::vector<std::string> &command,
       i += 2;
       continue;
     }
+    // incriment in default case
+    i += 1;
   }
 
   std::cout << "Finised parsing " << std::endl;
@@ -481,24 +502,19 @@ void follow_up_slave(std::vector<std::string> &req, std::string original_req) {
   }
 }
 
-void handle(struct connection_params *params) {
-
-  int socket_fd = params->fd;
-  struct sockaddr_in *client_addr = params->addr;
-  std::string server_type = (params->is_master) ? "Master - " : "Replica - ";
-
+void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
     char buff[32] = {};
     int total_written = 0;
-    std::cout << server_type + "Listening for message: " << std::endl;
-    std::string req = *(get_full_message(socket_fd, server_type + ""));
+    std::cout << "Master - Listening for message: " << std::endl;
+    std::string req = *(get_full_message(socket_fd));
     if (req.length() <= 1) {
       break;
     }
-    std::cout << server_type + "Received message: " << req << std::endl;
+    std::cout << "Master - Received message: " << req << std::endl;
     std::vector<std::string> *all_words = split_by_clrf(req);
-    std::cout << server_type + "ARRAY: ";
+    std::cout << "Master - ARRAY: ";
 
     for (std::string word : *all_words) {
       std::cout << word << ", ";
@@ -506,11 +522,11 @@ void handle(struct connection_params *params) {
     std::cout << std::endl;
 
     std::vector<std::string> response{};
-    parse_command(*all_words, response, server_type + "");
+    parse_command(*all_words, response);
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
-      std::cout << server_type + "Server Response: " << resp << std::endl;
+      std::cout << "Master - Server Response: " << resp << std::endl;
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
       follow_up_commands(resp, socket_fd);
       follow_up_slave(*all_words, req);
@@ -547,26 +563,22 @@ void run_handshake() {
   // HANDSHAKE: PING
   const char *message{"*1\r\n$4\r\nping\r\n"};
   send(replica_fd, message, std::string(message).size(), 0);
-  std::string *response_ping = get_full_message(replica_fd, "Replica - ");
-  std::cout << "Finished PING" << std::endl;
+  std::string *response_ping = get_full_message(replica_fd);
 
   const char *repl_conf{
       "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"};
   send(replica_fd, repl_conf, std::string(repl_conf).size(), 0);
-  std::string *response_repl_1 = get_full_message(replica_fd, "Replica - ");
-  std::cout << "Finished REPL-CONF" << std::endl;
+  std::string *response_repl_1 = get_full_message(replica_fd);
 
   const char *repl_conf_2{
       "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
   send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
-  std::string *response_repl_2 = get_full_message(replica_fd, "Replica - ");
-  std::cout << "Finished REPL-CONF-2" << std::endl;
+  std::string *response_repl_2 = get_full_message(replica_fd);
 
   const char *psync{"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"};
   send(replica_fd, psync, std::string(psync).size(), 0);
-  std::string *response_psync = get_full_message(replica_fd, "Replica - ");
-  std::string *handle_RDB = get_full_message(replica_fd, "Replica - ");
-  std::cout << "Finished RDB" << std::endl;
+
+  // Handshake complete. Any further messages can include COMMANDS after RDB
 
   bool closefd = false;
   // LISTEN to commands from the master and process them like regular commands
@@ -574,12 +586,13 @@ void run_handshake() {
     char buff[32] = {};
     int total_written = 0;
     std::cout << "Replica - Listening for message..." << std::endl;
-    std::string req = *(get_full_message(replica_fd, "Replica - "));
+    std::string req = *(get_full_message(replica_fd));
 
     if (req.length() <= 1) {
       break;
     }
     std::cout << "Replica - Received message: " << req << std::endl;
+    std::cout << "Splitting by CLRF" << std::endl;
     std::vector<std::string> *all_words = split_by_clrf(req);
     std::cout << "Replica - ARRAY: ";
 
@@ -588,7 +601,8 @@ void run_handshake() {
     }
     std::cout << std::endl;
     std::vector<std::string> response{};
-    parse_command(*all_words, response, "Replica - ");
+    std::cout << "Parsing array: \n";
+    parse_command(*all_words, response);
   }
   close(replica_fd);
 }
