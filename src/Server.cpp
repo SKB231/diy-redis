@@ -23,7 +23,7 @@
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void run_handshake();
 
-std::string *get_full_message(int socket_fd);
+std::string *get_full_message(int socket_fd, std::string caller);
 void test_handle(int socket_fd, struct sockaddr_in *client_addr);
 
 // Global Variables:
@@ -232,8 +232,7 @@ int main(int argc, char **argv) {
   }
 
   if (config.server_role == Config_Settings::slave) {
-    new std::thread{run_handshake}; // run handshake in a seperate thread
-                                    // without requirement to destroy
+    run_handshake();
   }
 
   struct sockaddr_in client_addr;
@@ -257,7 +256,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-std::string *get_full_message(int socket_fd) {
+std::string *get_full_message(int socket_fd, std::string caller) {
   int data_written = 1;
   std::string *final_string = new std::string("");
   char buff[256];
@@ -265,7 +264,8 @@ std::string *get_full_message(int socket_fd) {
   for (int i = 0; i < data_written; i++) {
     *final_string += buff[i];
   }
-  std::cout << "DATA WRITTEN: " << data_written << std::endl;
+  std::cout << caller << "DATA WRITTEN: " << data_written << " "
+            << *final_string << std::endl;
   return final_string;
 }
 
@@ -292,7 +292,7 @@ std::string get_resp_bulkstring(std::string word) {
 }
 
 void parse_command(std::vector<std::string> &command,
-                   std::vector<std::string> &resp) {
+                   std::vector<std::string> &resp, std::string caller) {
   for (int i = 0; i < command.size();) {
     // We currently are in the COMMAND string. The remaining words need to be
     // unaltered to ensure case-sensitivity
@@ -332,6 +332,9 @@ void parse_command(std::vector<std::string> &command,
         lifetime = std::stoi(command[i + 4], &pos);
         skip_amount += 2;
       }
+
+      std::cout << caller << "setting " << command[i + 1] << " to "
+                << command[i + 2] << std::endl;
 
       mem_database[command[i + 1]] = command[i + 2];
 
@@ -474,7 +477,7 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     char buff[32] = {};
     int total_written = 0;
     std::cout << "Master - Listening for message: " << std::endl;
-    std::string req = *(get_full_message(socket_fd));
+    std::string req = *(get_full_message(socket_fd, "Master - "));
     if (req.length() <= 1) {
       break;
     }
@@ -488,7 +491,7 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     std::cout << std::endl;
 
     std::vector<std::string> response{};
-    parse_command(*all_words, response);
+    parse_command(*all_words, response, "Master - ");
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
@@ -529,22 +532,26 @@ void run_handshake() {
   // HANDSHAKE: PING
   const char *message{"*1\r\n$4\r\nping\r\n"};
   send(replica_fd, message, std::string(message).size(), 0);
-  std::string *response_ping = get_full_message(replica_fd);
+  std::string *response_ping = get_full_message(replica_fd, "Replica - ");
+  std::cout << "Finished PING" << std::endl;
 
   const char *repl_conf{
       "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n"};
   send(replica_fd, repl_conf, std::string(repl_conf).size(), 0);
-  std::string *response_repl_1 = get_full_message(replica_fd);
+  std::string *response_repl_1 = get_full_message(replica_fd, "Replica - ");
+  std::cout << "Finished REPL-CONF" << std::endl;
 
   const char *repl_conf_2{
       "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"};
   send(replica_fd, repl_conf_2, std::string(repl_conf_2).size(), 0);
-  std::string *response_repl_2 = get_full_message(replica_fd);
+  std::string *response_repl_2 = get_full_message(replica_fd, "Replica - ");
+  std::cout << "Finished REPL-CONF-2" << std::endl;
 
   const char *psync{"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"};
   send(replica_fd, psync, std::string(psync).size(), 0);
-  std::string *response_psync = get_full_message(replica_fd);
-  std::string *handle_RDB = get_full_message(replica_fd);
+  std::string *response_psync = get_full_message(replica_fd, "Replica - ");
+  std::string *handle_RDB = get_full_message(replica_fd, "Replica - ");
+  std::cout << "Finished RDB" << std::endl;
 
   bool closefd = false;
   // LISTEN to commands from the master and process them like regular commands
@@ -552,7 +559,7 @@ void run_handshake() {
     char buff[32] = {};
     int total_written = 0;
     std::cout << "Replica - Listening for message..." << std::endl;
-    std::string req = *(get_full_message(replica_fd));
+    std::string req = *(get_full_message(replica_fd, "Replica - "));
 
     if (req.length() <= 1) {
       break;
@@ -566,7 +573,7 @@ void run_handshake() {
     }
     std::cout << std::endl;
     std::vector<std::string> response{};
-    parse_command(*all_words, response);
+    parse_command(*all_words, response, "Replica - ");
   }
   close(replica_fd);
 }
