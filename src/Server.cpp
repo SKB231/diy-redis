@@ -1,15 +1,14 @@
 #include <arpa/inet.h>
-#include <cctype>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <exception>
-#include <functional>
 #include <iostream>
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <new>
+#include <stdio.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -19,8 +18,22 @@
 #include <utility>
 #include <vector>
 
+struct Config_Settings {
+public:
+  enum { master, slave } server_role;
+  int server_port;
+  std::pair<std::string, int> master_info;
+  std::vector<int> replica_fd{};
+};
+
+struct connection_params {
+  int fd;
+  bool is_master;
+  struct sockaddr_in *addr;
+};
+
 // Function prototypes:
-void handle(int socket_fd, struct sockaddr_in *client_addr);
+void handle(struct connection_params *params);
 void run_handshake();
 
 std::string *get_full_message(int socket_fd, std::string caller);
@@ -32,7 +45,7 @@ std::unordered_map<std::string, std::string> mem_database{};
 class Worker {
 
 public:
-  std::pair<int, struct sockaddr_in *> params;
+  struct connection_params *params;
   std::pair<int, std::string> params_deletion;
   enum Job_Type {
     connection,
@@ -54,10 +67,10 @@ public:
 
       if (worker.job_type == Job_Type::connection) {
 
-        handle(worker.params.first, worker.params.second);
+        handle(worker.params);
 
         // Unlock m and reset params for use in next iteration
-        worker.params = std::pair<int, struct sockaddr_in *>{};
+        worker.params = {};
       } else {
 
         std::this_thread::sleep_for(
@@ -106,7 +119,7 @@ public:
   Master &operator=(const Master &master) = delete;
   Master(const Master &master) = delete;
 
-  void run_connection(std::pair<int, struct sockaddr_in *> &params) {
+  void run_connection(struct connection_params *params) {
 
     std::lock_guard<std::mutex> guard(
         worker_lock); // Use guard to lock worker vector usage
@@ -135,14 +148,6 @@ public:
 
 // Our threads
 Master master = Master(4);
-
-struct Config_Settings {
-public:
-  enum { master, slave } server_role;
-  int server_port;
-  std::pair<std::string, int> master_info;
-  std::vector<int> replica_fd{};
-};
 
 Config_Settings parse_arguments(int argc, char **argv) {
   if (argc == 1) {
@@ -232,6 +237,7 @@ int main(int argc, char **argv) {
   }
 
   if (config.server_role == Config_Settings::slave) {
+    std::cout << "Reached here!";
     run_handshake();
   }
 
@@ -248,8 +254,12 @@ int main(int argc, char **argv) {
     }
     std::cout << "Client connected\n";
     // handle(client_fd, (struct sockaddr_in *)&client_addr);
-    std::pair<int, struct sockaddr_in *> params{
-        client_fd, (struct sockaddr_in *)&client_addr};
+    // std::pair<int, struct sockaddr_in *> params{
+    //    client_fd, (struct sockaddr_in *)&client_addr};
+
+    struct connection_params *params = new connection_params{
+        client_fd, config.server_role == Config_Settings::master,
+        (struct sockaddr_in *)&client_addr};
     master.run_connection(params);
   }
 
@@ -471,19 +481,24 @@ void follow_up_slave(std::vector<std::string> &req, std::string original_req) {
   }
 }
 
-void handle(int socket_fd, struct sockaddr_in *client_addr) {
+void handle(struct connection_params *params) {
+
+  int socket_fd = params->fd;
+  struct sockaddr_in *client_addr = params->addr;
+  std::string server_type = (params->is_master) ? "Master - " : "Replica - ";
+
   bool closefd = false;
   while (!closefd) {
     char buff[32] = {};
     int total_written = 0;
-    std::cout << "Master - Listening for message: " << std::endl;
-    std::string req = *(get_full_message(socket_fd, "Master - "));
+    std::cout << server_type + "Listening for message: " << std::endl;
+    std::string req = *(get_full_message(socket_fd, server_type + ""));
     if (req.length() <= 1) {
       break;
     }
-    std::cout << "Master - Received message: " << req << std::endl;
+    std::cout << server_type + "Received message: " << req << std::endl;
     std::vector<std::string> *all_words = split_by_clrf(req);
-    std::cout << "Master - ARRAY: ";
+    std::cout << server_type + "ARRAY: ";
 
     for (std::string word : *all_words) {
       std::cout << word << ", ";
@@ -491,11 +506,11 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     std::cout << std::endl;
 
     std::vector<std::string> response{};
-    parse_command(*all_words, response, "Master - ");
+    parse_command(*all_words, response, server_type + "");
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
-      std::cout << "Master - Server Response: " << resp << std::endl;
+      std::cout << server_type + "Server Response: " << resp << std::endl;
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
       follow_up_commands(resp, socket_fd);
       follow_up_slave(*all_words, req);
