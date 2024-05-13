@@ -321,15 +321,24 @@ std::string get_resp_bulkstring(std::string word) {
   return "$" + std::to_string(word.size()) + "\r\n" + word + "\r\n";
 }
 
+std::string get_resp_bulk_arr(std::vector<string> words) {
+  std::string final_str = "*" + std::to_string(words.size()) + "\r\n";
+  for (auto word : words) {
+    final_str += get_resp_bulkstring(word);
+  }
+  return final_str;
+}
 void parse_command(std::vector<std::string> &command,
                    std::vector<std::string> &resp) {
-  for (int i = 0; i < command.size();) {
+  for (int i = 0; i < command.size(); i += 1) {
     // We currently are in the COMMAND string. The remaining words need to be
     // unaltered to ensure case-sensitivity
     for (int j = 0; j < command[i].size(); j++) {
       command[i][j] = std::tolower(command[i][j]);
     }
+  }
 
+  for (int i = 0; i < command.size();) {
     std::cout << "Parsing command: " << command[i] << std::endl;
 
     if (command[i] == "echo") {
@@ -403,6 +412,14 @@ void parse_command(std::vector<std::string> &command,
       } else {
         i += 1;
       }
+      continue;
+    }
+
+    if (i + 1 < command.size() && command[i] == "replconf" &&
+        command[i + 1] == "getack") {
+
+      resp.push_back(get_resp_bulk_arr({"REPLCONF", "ACK", "0"}));
+      i += 2;
       continue;
     }
 
@@ -603,6 +620,12 @@ void run_handshake() {
     std::vector<std::string> response{};
     std::cout << "Parsing array: \n";
     parse_command(*all_words, response);
+
+    for (int i = 0; i < response.size(); i++) {
+      std::string resp = response[i];
+      std::cout << "Replica - Server Response: " << resp << std::endl;
+      send(replica_fd, (void *)resp.c_str(), resp.size(), 0);
+    }
   }
   close(replica_fd);
 }
