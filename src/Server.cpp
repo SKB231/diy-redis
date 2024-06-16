@@ -23,6 +23,7 @@
 // Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void handshake_and_replication_handle();
+void request_ack();
 std::string *get_full_message(int socket_fd, int* count);
 const int BUF_SIZE = 250;
 
@@ -31,9 +32,9 @@ using redis_map = std::unordered_map<std::string, std::string>;
 using std::pair;
 using std::cout;
 
-
 redis_map mem_database{};
 long long total_written = -1;
+bool waiting_for_ack_resp = 0;
 
 class Worker {
 
@@ -363,7 +364,12 @@ void parse_command(std::vector<std::string> &command,
 
       if (!is_replica) {
         int count = config.replica_fd.size();
-        resp.push_back(":" + std::to_string(count) + "\r\n");
+        if(count == 0) {
+          resp.push_back(":" + std::to_string(count) + "\r\n");
+        } else {
+          cout << "RETRIVING AKNOWLEDGEMENTS";
+          request_ack();
+        }
       }
       i += 2;
     }
@@ -546,6 +552,18 @@ void follow_up_slave(std::vector<std::string> &req, std::string original_req) {
   }
 }
 
+void request_ack() {
+  cout << "Requesting replicas for confirmation..." << endl;
+  std::string req = "REPLCONF getack *";
+  for (auto fd : config.replica_fd) {
+    waiting_for_ack_resp -= 1;
+    new std::thread([=] -> void {
+      send(fd, (void *)req.c_str(), req.size(), 0);
+      std::string resp = *(get_full_message(fd));
+      cout << "RECEIVED REPLICA RESPONSE!!!: " << "from fd: " << fd << " => " << resp << endl;
+    });
+  }
+}
 void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
