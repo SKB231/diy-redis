@@ -357,6 +357,13 @@ void parse_command(std::vector<std::string> &command,
       continue;
     }
 
+    if (command[i] == "wait") {
+      int repl_count = std::stoi(command[i+1]);
+      int timeout = std::stoi(command[i+2]);
+      if (!is_replica) resp.push_back(":" + std::to_string(0) + "\r\n");
+      i += 2;
+    }
+
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
       if(!is_replica) resp.push_back("+" + std::string("PONG") + "\r\n");
