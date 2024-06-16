@@ -149,7 +149,7 @@ public:
 };
 
 // Our threads
-Master master = Master(4);
+Master master = Master(10);
 
 struct Config_Settings {
 public:
@@ -360,12 +360,17 @@ void parse_command(std::vector<std::string> &command,
     if (command[i] == "wait") {
       int repl_count = std::stoi(command[i+1]);
       int timeout = std::stoi(command[i+2]);
-      if (!is_replica) resp.push_back(":" + std::to_string(0) + "\r\n");
+
+      if (!is_replica) {
+        int count = config.replica_fd.size();
+        resp.push_back(":" + std::to_string(count) + "\r\n");
+      }
       i += 2;
     }
 
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
+
       if(!is_replica) resp.push_back("+" + std::string("PONG") + "\r\n");
 
       i += 1;
