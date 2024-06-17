@@ -25,7 +25,7 @@
 // Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void handshake_and_replication_handle();
-void request_ack(set<int>* validated_replicas, int* validated_count);
+void request_ack();
 std::string *get_full_message(int socket_fd, int* count);
 const int BUF_SIZE = 250;
 
@@ -36,6 +36,7 @@ using std::pair;
 using std::cout;
 
 redis_map mem_database{};
+set<int> validated_fd{};
 long long total_written = -1;
 long long next_written = 0;
 int replica_validation_count = 0;
@@ -313,7 +314,7 @@ std::string *get_full_message(int socket_fd, long long* count = nullptr) {
     if(count) {
       *count += data_written;
     }
-    if(data_written <= 0) {
+    if(data_written < 0) {
       final_string = nullptr;
     }
     return final_string;
@@ -346,9 +347,13 @@ std::string get_resp_bulk_arr(std::vector<string> words) {
   return final_str;
 }
 
+using SHOULD_INSERT_TO_ACK_FD = bool;
 
-void parse_command(vector_strings &command,
+// Returns whether the command was sent by a client or replica
+SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
                    vector_strings &resp, bool is_replica = false) {
+
+  SHOULD_INSERT_TO_ACK_FD should_insert = false;
   for (int i = 0; i < command.size(); i += 1) {
     for (int j = 0; j < command[i].size(); j++) {
       command[i][j] = std::tolower(command[i][j]);
@@ -367,7 +372,6 @@ void parse_command(vector_strings &command,
     }
 
     if (command[i] == "wait") {
-      int repl_count = std::stoi(command[i+1]);
       int timeout = std::stoi(command[i+2]);
 
       if (!is_replica) {
@@ -376,27 +380,24 @@ void parse_command(vector_strings &command,
           resp.push_back(":" + std::to_string(count) + "\r\n");
         } else {
           wait_command_progressing = true;
-          auto validated_replicas  = new std::set<int>();
-          int validated_count = 0;
+          validated_fd.clear();
           replica_validation_count = 0;
 
           new thread([&] (vector_strings& resp) -> void {
-
-            this_thread::sleep_for(std::chrono::milliseconds(50));
-            request_ack(validated_replicas, &validated_count);
-            while(replica_validation_count <= repl_count) {
-              this_thread::sleep_for(std::chrono::milliseconds(200));
-              cout << "Request ack" << endl;
-              request_ack(validated_replicas, validated_count);
-              cout << "Completed ack request. Sleeping for 200 ms" << endl;
-              if(!wait_command_progressing) return;
-            }
+            this_thread::sleep_for(std::chrono::milliseconds(200));
+            request_ack();
+            //while(replica_validation_count <= repl_count) {
+            //  this_thread::sleep_for(std::chrono::milliseconds(200));
+            //  cout << "Request ack" << endl;
+            //  request_ack(validated_replicas, &validated_count);
+            //  cout << "Completed ack request. Sleeping for 200 ms" << endl;
+            //  if(!wait_command_progressing) break;
+            //}
           }, std::ref(resp));
-
           cout << "Sleepiping for " << timeout << " ms" << endl;
 
           this_thread::sleep_for(std::chrono::milliseconds(timeout));
-          int total_validated = replica_validation_count;
+          int total_validated = validated_fd.size();
           cout << "Reached timeout... " << "Using size: " << total_validated << endl;
           resp.push_back(":" + std::to_string(total_validated) + "\r\n");
           wait_command_progressing = false;
@@ -411,7 +412,6 @@ void parse_command(vector_strings &command,
       // return "+" + std::string("PONG") + "\r\n";
 
       if(!is_replica) resp.push_back("+" + std::string("PONG") + "\r\n");
-
       i += 1;
       continue;
     }
@@ -477,11 +477,14 @@ void parse_command(vector_strings &command,
     }
 
     if (i+1 < command.size() && command[i] == "replconf" && command[i+1] == "ack") {
-      const int replica_written = std::stoi(command[i+2]);
-      cout << "The replica has written: " << replica_written << " Server recorded : " <<  total_written << endl;
-      replica_validation_count += 1;
-      //resp.push_back("1"); // We're not adding anything here to prevent maseter-server from sending unneccary responses
-      return;
+      if (command.size() > 2 && command[0] == "replconf" && command[1] == "ack") {
+        const int replica_written = std::stoi(command[2]);
+        cout << "The replica has written: " << replica_written << " Server recorded : " <<  total_written << endl;
+        if(replica_written == total_written) {
+          replica_validation_count += 1;
+          should_insert = true;
+        }
+      }
       i += 2;
     }
 
@@ -511,6 +514,7 @@ void parse_command(vector_strings &command,
       resp.push_back(std::string(
           "+FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0\r\n"));
       i += 3;
+      cout << "PSYNC COMMAND CALLED";
       continue;
     }
 
@@ -534,7 +538,9 @@ void parse_command(vector_strings &command,
   cout << "Finised parsing " << std::endl;
   for (int i = 0; i < resp.size(); i++)
     cout << resp[i] << ", ";
+  return should_insert;
 }
+
 
 /**
  * convert_to_binary converts a hex string into an array of bytes containing the
@@ -610,39 +616,22 @@ void follow_up_slave(vector_strings &req, std::string original_req) {
  * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check the number of confirmed replicas. If the count is greater than the param , return the count.
  * -- Else: if more time is remaining, then redo the above. Else, send the count that's completed.
  */
-void request_ack(set<int>* validated_replicas, int* validated_count) {
+void request_ack() {
   cout << "Requesting replicas for confirmation..." << endl;
   std::string req = get_resp_bulk_arr({"REPLCONF", "GETACK", "*"});
 
   for (auto fd : config.replica_fd) {
-    //if(validated_replicas->contains(fd)) continue;
-    struct timeval tv{};
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    if(validated_fd.contains(fd)) continue;
+    //struct timeval tv{};
+    //tv.tv_sec = 0;
+    //tv.tv_usec =50;
     // Setting timeout to not ensure we don't wait too long
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    //setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     cout << "Requesting: " << fd << endl;
     new std::thread([=] () -> void {
       cout << "CALLING " << fd << endl;
+      // Trigger requests to the replica servers. The replica server handlers should duress by updating the global replica_fd set.
       send(fd, (void *)req.c_str(), req.size(), 0);
-      std::string* resp_ptr = (get_full_message(fd));
-      if(resp_ptr == nullptr) return;
-      auto resp = *resp_ptr;
-      vector_strings *all_words = split_by_clrf(resp);
-      cout << "Master (jail check) - ARRAY: ";
-      for (const std::string& word : *all_words) {
-        cout << word << ", ";
-      }
-      cout << endl;
-      vector_strings validate_total_written{};
-
-      cout << "Calling ack to parse resp" << endl;
-      int prev_validation_count = replica_validation_count;
-      parse_command(*all_words, validate_total_written);
-      cout << "ack response parsing complete" << endl;
-      if(replica_validation_count > prev_validation_count) {
-        cout << "incrimenting validtion count: " << replica_validation_count << endl;
-      }
     });
   }
   next_written = req.size();
@@ -651,14 +640,20 @@ void request_ack(set<int>* validated_replicas, int* validated_count) {
 void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
-    cout << "Master - Listening for message: " << std::endl;
-    std::string req = *(get_full_message(socket_fd));
+
+    cout << std::to_string(socket_fd) + " Master - Listening for message: " << std::endl;
+    std::string* req_ptr = get_full_message(socket_fd);
+    if(!req_ptr) {
+      cout << "Empty string... skipping" << endl;
+      continue;
+    }
+    std::string req = *(req_ptr);
     if (req.length() <= 1) {
       break;
     }
-    cout << "Master - Received message: " << req << std::endl;
+    cout << std::to_string(socket_fd) + " Master - Received message: " << req << std::endl;
     vector_strings *all_words = split_by_clrf(req);
-    cout << "Master - ARRAY: ";
+    cout << std::to_string(socket_fd) + " Master - ARRAY: ";
 
     for (std::string word : *all_words) {
       cout << word << ", ";
@@ -666,11 +661,15 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     cout << std::endl;
 
     vector_strings response{};
-    parse_command(*all_words, response);
+    bool should_insert = (parse_command(*all_words, response));
+    if(should_insert) {
+      cout << socket_fd << " SHOULD INSERT COMMAND" << endl;
+      validated_fd.insert(socket_fd);
+    }
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
-      cout << "Master - Server Response: " << resp << std::endl;
+      cout <<std::to_string(socket_fd)  + " Master - Server Response: " << resp << std::endl;
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
       follow_up_commands(resp, socket_fd);
       follow_up_slave(*all_words, req);
