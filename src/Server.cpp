@@ -7,6 +7,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -17,24 +18,28 @@
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
+#include <set>
 #include <utility>
 #include <vector>
 
 // Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void handshake_and_replication_handle();
-void request_ack();
+void request_ack(set<int>* validated_replicas, int* validated_count);
 std::string *get_full_message(int socket_fd, int* count);
 const int BUF_SIZE = 250;
 
 // Global Variables:
+using vector_strings = std::vector<std::string>;
 using redis_map = std::unordered_map<std::string, std::string>;
 using std::pair;
 using std::cout;
 
 redis_map mem_database{};
 long long total_written = -1;
-bool waiting_for_ack_resp = 0;
+long long next_written = 0;
+int replica_validation_count = 0;
+bool wait_command_progressing = false;
 
 class Worker {
 
@@ -188,7 +193,7 @@ Config_Settings parse_arguments(int argc, char **argv) {
       // Slave settings
       config_settings.server_role = Config_Settings::slave;
 
-      std::vector<std::string> master_info{};
+      vector_strings master_info{};
 
       split_string(argv[i + 1], ' ', master_info);
 
@@ -303,18 +308,20 @@ std::string *get_full_message(int socket_fd, long long* count = nullptr) {
     for (int i = 0; i < data_written; i++) {
       *final_string += buff[i];
     }
-    cout << *final_string << endl;
+    cout << "From " <<  socket_fd <<  " DATA WRITTEN: " << data_written << " " << *final_string
+       << std::endl;
     if(count) {
-      cout << "DATA WRITTEN: " << data_written << " " << *final_string
-           << std::endl;
       *count += data_written;
+    }
+    if(data_written <= 0) {
+      final_string = nullptr;
     }
     return final_string;
 }
 
-std::vector<std::string> *split_by_clrf(std::string &full_message) {
+vector_strings *split_by_clrf(std::string &full_message) {
   int last_token = 0;
-  std::vector<std::string> *words{new std::vector<std::string>};
+  vector_strings *words{new vector_strings};
   for (int i = 0; i < full_message.length() - 1; i += 1) {
     if (full_message[i] == '\r' && full_message[i + 1] == '\n') {
       std::string word = full_message.substr(last_token, i - last_token);
@@ -339,8 +346,9 @@ std::string get_resp_bulk_arr(std::vector<string> words) {
   return final_str;
 }
 
-void parse_command(std::vector<std::string> &command,
-                   std::vector<std::string> &resp, bool is_replica = false) {
+
+void parse_command(vector_strings &command,
+                   vector_strings &resp, bool is_replica = false) {
   for (int i = 0; i < command.size(); i += 1) {
     for (int j = 0; j < command[i].size(); j++) {
       command[i][j] = std::tolower(command[i][j]);
@@ -364,11 +372,36 @@ void parse_command(std::vector<std::string> &command,
 
       if (!is_replica) {
         int count = config.replica_fd.size();
-        if(count == 0) {
+        if(count == 0 || total_written < 0) {
           resp.push_back(":" + std::to_string(count) + "\r\n");
         } else {
-          cout << "RETRIVING AKNOWLEDGEMENTS";
-          request_ack();
+          wait_command_progressing = true;
+          auto validated_replicas  = new std::set<int>();
+          int validated_count = 0;
+          replica_validation_count = 0;
+
+          new thread([&] (vector_strings& resp) -> void {
+
+            this_thread::sleep_for(std::chrono::milliseconds(50));
+            request_ack(validated_replicas, &validated_count);
+            while(replica_validation_count <= repl_count) {
+              this_thread::sleep_for(std::chrono::milliseconds(200));
+              cout << "Request ack" << endl;
+              request_ack(validated_replicas, validated_count);
+              cout << "Completed ack request. Sleeping for 200 ms" << endl;
+              if(!wait_command_progressing) return;
+            }
+          }, std::ref(resp));
+
+          cout << "Sleepiping for " << timeout << " ms" << endl;
+
+          this_thread::sleep_for(std::chrono::milliseconds(timeout));
+          int total_validated = replica_validation_count;
+          cout << "Reached timeout... " << "Using size: " << total_validated << endl;
+          resp.push_back(":" + std::to_string(total_validated) + "\r\n");
+          wait_command_progressing = false;
+          total_written += next_written;
+          next_written = 0;
         }
       }
       i += 2;
@@ -441,6 +474,15 @@ void parse_command(std::vector<std::string> &command,
         i += 1;
       }
       continue;
+    }
+
+    if (i+1 < command.size() && command[i] == "replconf" && command[i+1] == "ack") {
+      const int replica_written = std::stoi(command[i+2]);
+      cout << "The replica has written: " << replica_written << " Server recorded : " <<  total_written << endl;
+      replica_validation_count += 1;
+      //resp.push_back("1"); // We're not adding anything here to prevent maseter-server from sending unneccary responses
+      return;
+      i += 2;
     }
 
     if (i + 1 < command.size() && command[i] == "replconf" &&
@@ -542,40 +584,80 @@ void follow_up_commands(std::string sent_command, int socket_fd) {
   }
 }
 
-void follow_up_slave(std::vector<std::string> &req, std::string original_req) {
+void follow_up_slave(vector_strings &req, std::string original_req) {
   if (config.server_role == Config_Settings::slave || req[0] != "set")
     return;
-
-  cout << "Propogating request to slaves: " << std::endl;
+  // Master to keep track of total_written
+  cout << "Propogating request to slaves: " << original_req.size() << " => " << original_req << endl;
   for (auto fd : config.replica_fd) {
-    send(fd, (void *)original_req.c_str(), original_req.size(), 0);
-  }
-}
-
-void request_ack() {
-  cout << "Requesting replicas for confirmation..." << endl;
-  std::string req = "REPLCONF getack *";
-  for (auto fd : config.replica_fd) {
-    waiting_for_ack_resp -= 1;
-    new std::thread([=] -> void {
-      send(fd, (void *)req.c_str(), req.size(), 0);
-      std::string resp = *(get_full_message(fd));
-      cout << "RECEIVED REPLICA RESPONSE!!!: " << "from fd: " << fd << " => " << resp << endl;
+    cout << "Propogating to :" << fd << endl;
+    new std::thread([=] () -> void {
+        send(fd, (void *)original_req.c_str(), original_req.size(), 0);
     });
   }
+  if(total_written < 0) total_written = 0;
+  total_written += original_req.size();
 }
+
+
+// We are going to operate on elements of a vector containing which FDs should be tested for. Whenever a file descriptor is confirmed, we remove it from the array
+// It's reset in the function call in the command_parser method.
+/**
+ * The plan is to use this array scoped only to the wait request.
+ * - Prereqs:
+ * -- The get_full_message should have a max timeout of 500 ms.
+ * -- If the replca total_written_match our total_written, remove the element from the array, by setting it to -1.
+ * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check the number of confirmed replicas. If the count is greater than the param , return the count.
+ * -- Else: if more time is remaining, then redo the above. Else, send the count that's completed.
+ */
+void request_ack(set<int>* validated_replicas, int* validated_count) {
+  cout << "Requesting replicas for confirmation..." << endl;
+  std::string req = get_resp_bulk_arr({"REPLCONF", "GETACK", "*"});
+
+  for (auto fd : config.replica_fd) {
+    //if(validated_replicas->contains(fd)) continue;
+    struct timeval tv{};
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    // Setting timeout to not ensure we don't wait too long
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    cout << "Requesting: " << fd << endl;
+    new std::thread([=] () -> void {
+      cout << "CALLING " << fd << endl;
+      send(fd, (void *)req.c_str(), req.size(), 0);
+      std::string* resp_ptr = (get_full_message(fd));
+      if(resp_ptr == nullptr) return;
+      auto resp = *resp_ptr;
+      vector_strings *all_words = split_by_clrf(resp);
+      cout << "Master (jail check) - ARRAY: ";
+      for (const std::string& word : *all_words) {
+        cout << word << ", ";
+      }
+      cout << endl;
+      vector_strings validate_total_written{};
+
+      cout << "Calling ack to parse resp" << endl;
+      int prev_validation_count = replica_validation_count;
+      parse_command(*all_words, validate_total_written);
+      cout << "ack response parsing complete" << endl;
+      if(replica_validation_count > prev_validation_count) {
+        cout << "incrimenting validtion count: " << replica_validation_count << endl;
+      }
+    });
+  }
+  next_written = req.size();
+}
+
 void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
-    char buff[32] = {};
-    int total_written = 0;
     cout << "Master - Listening for message: " << std::endl;
     std::string req = *(get_full_message(socket_fd));
     if (req.length() <= 1) {
       break;
     }
     cout << "Master - Received message: " << req << std::endl;
-    std::vector<std::string> *all_words = split_by_clrf(req);
+    vector_strings *all_words = split_by_clrf(req);
     cout << "Master - ARRAY: ";
 
     for (std::string word : *all_words) {
@@ -583,7 +665,7 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     }
     cout << std::endl;
 
-    std::vector<std::string> response{};
+    vector_strings response{};
     parse_command(*all_words, response);
 
     for (int i = 0; i < response.size(); i++) {
@@ -661,14 +743,14 @@ void handshake_and_replication_handle() {
     }
     cout << "Replica - Received message: " << req << std::endl;
     cout << "Splitting by CLRF" << std::endl;
-    std::vector<std::string> *all_words = split_by_clrf(req);
+    vector_strings *all_words = split_by_clrf(req);
     cout << "Replica - ARRAY: ";
 
     for (std::string word : *all_words) {
       cout << word << ", ";
     }
     cout << std::endl;
-    std::vector<std::string> response{};
+    vector_strings response{};
     cout << "Parsing array: \n";
     parse_command(*all_words, response, true);
 
