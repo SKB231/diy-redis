@@ -160,26 +160,29 @@ Master master = Master(10);
 
 struct Config_Settings {
 public:
-  enum { master, slave } server_role;
-  int server_port;
-  pair<std::string, int> master_info;
-  std::vector<int> replica_fd{};
+    enum { master, slave } server_role;
+    string dir;
+    string dbfilename;
+    int server_port;
+    pair<std::string, int> master_info;
+    std::vector<int> replica_fd{};
 };
 
 Config_Settings parse_arguments(int argc, char **argv) {
   if (argc == 1) {
-    return Config_Settings{Config_Settings::master, 6379, {}};
+    auto returnConfig = Config_Settings{};
+    returnConfig.server_role = Config_Settings::master;
+    returnConfig.server_port = 6379;
+    returnConfig.master_info = {};
+    return returnConfig;
   }
   Config_Settings config_settings;
 
   config_settings.server_port = 6379;
-  for (int i = 1; i < argc - 1; i++) {
+  for (int i = 1; i < argc - 1; i+=2) {
 
-    std::string query = std::string(argv[i]);
-    std::string val = std::string(argv[i + 1]);
-
-    cout << query << " " << (query == "--replicaof") << " "
-              << (i + 2 < argc) << std::endl;
+    string query = std::string(argv[i]);
+    string val = std::string(argv[i + 1]);
 
     if (query == "--port") {
       try {
@@ -190,6 +193,12 @@ Config_Settings parse_arguments(int argc, char **argv) {
         cout << "Param conversion error\n";
         cout << e.what();
       }
+    } else if (query == "--dbfilename") {
+      config_settings.dbfilename = val;
+      cout << "Setting dbfilename as " << val << endl;
+    } else if (query == "--dir") {
+      config_settings.dir = val;
+      cout << "Setting dir as " << val << endl;
     } else if (query == "--replicaof") {
       // Slave settings
       config_settings.server_role = Config_Settings::slave;
@@ -519,6 +528,18 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     }
 
     if (command[i] == "get") {
+      if (command[i+1] == "dir") {
+        resp.push_back(get_resp_bulk_arr({"dir", config.dir}));
+        i += 2;
+        continue;
+      }
+      if (command[i+1] == "dbfilename") {
+        resp.push_back(get_resp_bulk_arr({"dbfilename" , config.dbfilename}));
+        i += 2;
+        continue;
+      }
+
+
       auto it = mem_database.find(command[i + 1]);
       if (it == mem_database.end()) {
         // element doesn't exist
