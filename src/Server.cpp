@@ -13,7 +13,6 @@
 #include <netinet/in.h>
 #include <new>
 #include <string>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
@@ -21,6 +20,9 @@
 #include <set>
 #include <utility>
 #include <vector>
+
+
+#include <sys/socket.h>
 
 // Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
@@ -61,7 +63,7 @@ public:
   static void run(Worker &worker) {
     while (true) {
       // If cv is notified, then run the function with the parameters
-      std::unique_lock lk(worker.m);
+      std::unique_lock<std::mutex> lk(worker.m);
 
       // cout << "Thread " << worker.id << " waiting for job. \n";
       worker.cv.wait(lk);
@@ -80,15 +82,11 @@ public:
 
         std::this_thread::sleep_for(
             std::chrono::milliseconds(worker.params_deletion.first));
-        std::string key_to_delete = worker.params_deletion.second;
-        mem_database.erase(mem_database.find(key_to_delete));
+        const std::string& key_to_delete = worker.params_deletion.second;
+        size_t x = mem_database.erase(key_to_delete);
         worker.job_type = Job_Type::connection;
       }
-
       lk.unlock();
-      // run the function
-      // cout << "Thread " << worker.id
-      // << " completed the job. Resetting.. \n";
     }
   }
 };
@@ -123,8 +121,8 @@ public:
   }
 
   // Currently no plans to use copy function
-  Master &operator=(const Master &master) = delete;
-  Master(const Master &master) = delete;
+  //Master &operator=(const Master &master) = delete;
+  //Master(const Master &master) = delete;
 
   void run_connection(pair<int, struct sockaddr_in *> &params) {
 
@@ -156,7 +154,7 @@ public:
 };
 
 // Our threads
-Master master = Master(10);
+Master master(10);
 
 struct Config_Settings {
 public:
@@ -268,9 +266,7 @@ int main(int argc, char **argv) {
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(config.server_port);
-
-  if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
-      0) {
+  if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
     std::cerr << "Failed to bind to port " << config.server_port << std::endl;
     return 1;
   }
@@ -420,7 +416,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
 
-      if(!is_replica) resp.push_back("+" + std::string("PONG") + "\r\n");
+      if(!is_replica) resp.push_back("+" + std::string("PONG_NO") + "\r\n");
       i += 1;
       continue;
     }
