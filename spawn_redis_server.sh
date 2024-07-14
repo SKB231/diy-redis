@@ -6,6 +6,9 @@
 #
 # DON'T EDIT THIS!
 set -e
-cmake . >/dev/null
-make >/dev/null
+echo "Building server..."
+cmake . #>/dev/null
+echo "Running Make..."
+make #>/dev/null
+echo "Running..."
 exec ./server "$@"

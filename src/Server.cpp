@@ -5,22 +5,19 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <exception>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <new>
+#include <set>
 #include <string>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
-#include <set>
 #include <utility>
 #include <vector>
-
 
 #include <sys/socket.h>
 
@@ -28,14 +25,14 @@
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void handshake_and_replication_handle();
 void request_ack();
-std::string *get_full_message(int socket_fd, int* count);
+std::string *get_full_message(int socket_fd, int *count);
 const int BUF_SIZE = 250;
 
 // Global Variables:
 using vector_strings = std::vector<std::string>;
 using redis_map = std::unordered_map<std::string, std::string>;
-using std::pair;
 using std::cout;
+using std::pair;
 
 redis_map mem_database{};
 set<int> validated_fd{};
@@ -43,6 +40,10 @@ long long total_written = -1;
 long long next_written = 0;
 int replica_validation_count = 0;
 bool wait_command_progressing = false;
+
+template <typename T> bool contains(set<T> &s, T val) {
+  return s.find(val) != s.end();
+}
 
 class Worker {
 
@@ -82,7 +83,7 @@ public:
 
         std::this_thread::sleep_for(
             std::chrono::milliseconds(worker.params_deletion.first));
-        const std::string& key_to_delete = worker.params_deletion.second;
+        const std::string &key_to_delete = worker.params_deletion.second;
         size_t x = mem_database.erase(key_to_delete);
         worker.job_type = Job_Type::connection;
       }
@@ -121,8 +122,8 @@ public:
   }
 
   // Currently no plans to use copy function
-  //Master &operator=(const Master &master) = delete;
-  //Master(const Master &master) = delete;
+  // Master &operator=(const Master &master) = delete;
+  // Master(const Master &master) = delete;
 
   void run_connection(pair<int, struct sockaddr_in *> &params) {
 
@@ -158,12 +159,12 @@ Master master(10);
 
 struct Config_Settings {
 public:
-    enum { master, slave } server_role;
-    string dir;
-    string dbfilename;
-    int server_port;
-    pair<std::string, int> master_info;
-    std::vector<int> replica_fd{};
+  enum { master, slave } server_role;
+  string dir;
+  string dbfilename;
+  int server_port;
+  pair<std::string, int> master_info;
+  std::vector<int> replica_fd{};
 };
 
 Config_Settings parse_arguments(int argc, char **argv) {
@@ -177,7 +178,7 @@ Config_Settings parse_arguments(int argc, char **argv) {
   Config_Settings config_settings;
 
   config_settings.server_port = 6379;
-  for (int i = 1; i < argc - 1; i+=2) {
+  for (int i = 1; i < argc - 1; i += 2) {
 
     string query = std::string(argv[i]);
     string val = std::string(argv[i + 1]);
@@ -261,12 +262,24 @@ int main(int argc, char **argv) {
     std::cerr << "setsockopt failed\n";
     return 1;
   }
+  /*
+  struct sockaddr_in {
+          __uint8_t       sin_len;
+          sa_family_t     sin_family;
+          in_port_t       sin_port;
+          struct  in_addr sin_addr;
+          char            sin_zero[8];
+  };
+   */
+  const struct sockaddr_in *server_addr =
+      new sockaddr_in{.sin_family = AF_INET,
+                      .sin_addr = INADDR_ANY,
+                      .sin_port = htons(config.server_port)};
 
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(config.server_port);
-  if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
+  const struct sockaddr *sockaddr_casted = (const struct sockaddr *)server_addr;
+
+  // bind(int, const struct sockaddr *,socklen_t)
+  if (bind((int)server_fd, sockaddr_casted, (socklen_t)sizeof(sockaddr)) != 0) {
     std::cerr << "Failed to bind to port " << config.server_port << std::endl;
     return 1;
   }
@@ -278,8 +291,9 @@ int main(int argc, char **argv) {
   }
 
   if (config.server_role == Config_Settings::slave) {
-    new std::thread{handshake_and_replication_handle}; // run handshake in a seperate thread
-                                    // without requirement to destroy
+    new std::thread{
+        handshake_and_replication_handle}; // run handshake in a seperate thread
+                                           // without requirement to destroy
   }
 
   struct sockaddr_in client_addr;
@@ -295,34 +309,34 @@ int main(int argc, char **argv) {
     }
     cout << "Client connected\n";
     // handle(client_fd, (struct sockaddr_in *)&client_addr);
-    pair<int, struct sockaddr_in *> params{
-        client_fd, (struct sockaddr_in *)&client_addr};
+    pair<int, struct sockaddr_in *> params{client_fd,
+                                           (struct sockaddr_in *)&client_addr};
     master.run_connection(params);
   }
 
   return 0;
 }
 
-std::string *get_full_message(int socket_fd, long long* count = nullptr) {
-    using sString = std::string;
+std::string *get_full_message(int socket_fd, long long *count = nullptr) {
+  using sString = std::string;
 
-    int data_written = 1;
-    auto *final_string = new sString("");
-    char buff[BUF_SIZE];
-    
-    data_written = recv(socket_fd, buff, BUF_SIZE, 0);
-    for (int i = 0; i < data_written; i++) {
-      *final_string += buff[i];
-    }
-    cout << "From " <<  socket_fd <<  " DATA WRITTEN: " << data_written << " " << *final_string
-       << std::endl;
-    if(count) {
-      *count += data_written;
-    }
-    if(data_written < 0) {
-      final_string = nullptr;
-    }
-    return final_string;
+  int data_written = 1;
+  auto *final_string = new sString("");
+  char buff[BUF_SIZE];
+
+  data_written = recv(socket_fd, buff, BUF_SIZE, 0);
+  for (int i = 0; i < data_written; i++) {
+    *final_string += buff[i];
+  }
+  cout << "From " << socket_fd << " DATA WRITTEN: " << data_written << " "
+       << *final_string << std::endl;
+  if (count) {
+    *count += data_written;
+  }
+  if (data_written < 0) {
+    final_string = nullptr;
+  }
+  return final_string;
 }
 
 vector_strings *split_by_clrf(std::string &full_message) {
@@ -356,7 +370,8 @@ using SHOULD_INSERT_TO_ACK_FD = bool;
 
 // Returns whether the command was sent by a client or replica
 SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
-                   vector_strings &resp, bool is_replica = false) {
+                                      vector_strings &resp,
+                                      bool is_replica = false) {
 
   SHOULD_INSERT_TO_ACK_FD should_insert = false;
   for (int i = 0; i < command.size(); i += 1) {
@@ -370,40 +385,44 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
 
     if (command[i] == "echo") {
       // return "+" + command[1] + "\r\n";
-      if(!is_replica) resp.push_back("+" + command[i + 1] + "\r\n");
+      if (!is_replica)
+        resp.push_back("+" + command[i + 1] + "\r\n");
 
       i += 2;
       continue;
     }
 
     if (command[i] == "wait") {
-      int timeout = std::stoi(command[i+2]);
+      int timeout = std::stoi(command[i + 2]);
 
       if (!is_replica) {
         int count = config.replica_fd.size();
-        if(count == 0 || total_written < 0) {
+        if (count == 0 || total_written < 0) {
           resp.push_back(":" + std::to_string(count) + "\r\n");
         } else {
           wait_command_progressing = true;
           validated_fd.clear();
           replica_validation_count = 0;
 
-          new thread([&] (vector_strings& resp) -> void {
-            this_thread::sleep_for(std::chrono::milliseconds(200));
-            request_ack();
-            //while(replica_validation_count <= repl_count) {
-            //  this_thread::sleep_for(std::chrono::milliseconds(200));
-            //  cout << "Request ack" << endl;
-            //  request_ack(validated_replicas, &validated_count);
-            //  cout << "Completed ack request. Sleeping for 200 ms" << endl;
-            //  if(!wait_command_progressing) break;
-            //}
-          }, std::ref(resp));
+          new thread(
+              [&](vector_strings &resp) -> void {
+                this_thread::sleep_for(std::chrono::milliseconds(200));
+                request_ack();
+                // while(replica_validation_count <= repl_count) {
+                //   this_thread::sleep_for(std::chrono::milliseconds(200));
+                //   cout << "Request ack" << endl;
+                //   request_ack(validated_replicas, &validated_count);
+                //   cout << "Completed ack request. Sleeping for 200 ms" <<
+                //   endl; if(!wait_command_progressing) break;
+                // }
+              },
+              std::ref(resp));
           cout << "Sleepiping for " << timeout << " ms" << endl;
 
           this_thread::sleep_for(std::chrono::milliseconds(timeout));
           int total_validated = validated_fd.size();
-          cout << "Reached timeout... " << "Using size: " << total_validated << endl;
+          cout << "Reached timeout... " << "Using size: " << total_validated
+               << endl;
           resp.push_back(":" + std::to_string(total_validated) + "\r\n");
           wait_command_progressing = false;
           total_written += next_written;
@@ -416,7 +435,8 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
 
-      if(!is_replica) resp.push_back("+" + std::string("PONG_NO") + "\r\n");
+      if (!is_replica)
+        resp.push_back("+" + std::string("PONG_NO") + "\r\n");
       i += 1;
       continue;
     }
@@ -445,16 +465,16 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       if (lifetime > 0) {
 
         auto params = pair<int, std::string>{lifetime, command[i + 1]};
-        cout << "Running delayed deletion by " << lifetime << "ms"
-                  << std::endl;
+        cout << "Running delayed deletion by " << lifetime << "ms" << std::endl;
         master.run_deletion(params);
       }
 
       // return "+" + std::string("OK") + "\r\n";
       i += skip_amount;
       cout << "End SET Command Skipping by " << skip_amount << " to " << i
-                << std::endl;
-      if (!is_replica) resp.push_back("+OK\r\n");
+           << std::endl;
+      if (!is_replica)
+        resp.push_back("+OK\r\n");
       continue;
     }
 
@@ -481,11 +501,14 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       continue;
     }
 
-    if (i+1 < command.size() && command[i] == "replconf" && command[i+1] == "ack") {
-      if (command.size() > 2 && command[0] == "replconf" && command[1] == "ack") {
+    if (i + 1 < command.size() && command[i] == "replconf" &&
+        command[i + 1] == "ack") {
+      if (command.size() > 2 && command[0] == "replconf" &&
+          command[1] == "ack") {
         const int replica_written = std::stoi(command[2]);
-        cout << "The replica has written: " << replica_written << " Server recorded : " <<  total_written << endl;
-        if(replica_written == total_written) {
+        cout << "The replica has written: " << replica_written
+             << " Server recorded : " << total_written << endl;
+        if (replica_written == total_written) {
           replica_validation_count += 1;
           should_insert = true;
         }
@@ -496,14 +519,15 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     if (i + 1 < command.size() && command[i] == "replconf" &&
         command[i + 1] == "getack") {
 
-        if(total_written < 0) {
-          resp.push_back(get_resp_bulk_arr({"REPLCONF", "ACK", "0"}));
-          total_written = 0;
-        } else {
-          resp.push_back(get_resp_bulk_arr({"REPLCONF", "ACK", std::to_string(total_written)}));
-        }
-        i += 2;
-        continue;
+      if (total_written < 0) {
+        resp.push_back(get_resp_bulk_arr({"REPLCONF", "ACK", "0"}));
+        total_written = 0;
+      } else {
+        resp.push_back(get_resp_bulk_arr(
+            {"REPLCONF", "ACK", std::to_string(total_written)}));
+      }
+      i += 2;
+      continue;
     }
 
     if (command[i] == "replconf") {
@@ -524,17 +548,16 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     }
 
     if (command[i] == "get") {
-      if (command[i+1] == "dir") {
+      if (command[i + 1] == "dir") {
         resp.push_back(get_resp_bulk_arr({"dir", config.dir}));
         i += 2;
         continue;
       }
-      if (command[i+1] == "dbfilename") {
-        resp.push_back(get_resp_bulk_arr({"dbfilename" , config.dbfilename}));
+      if (command[i + 1] == "dbfilename") {
+        resp.push_back(get_resp_bulk_arr({"dbfilename", config.dbfilename}));
         i += 2;
         continue;
       }
-
 
       auto it = mem_database.find(command[i + 1]);
       if (it == mem_database.end()) {
@@ -557,7 +580,6 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     cout << resp[i] << ", ";
   return should_insert;
 }
-
 
 /**
  * convert_to_binary converts a hex string into an array of bytes containing the
@@ -611,43 +633,52 @@ void follow_up_slave(vector_strings &req, std::string original_req) {
   if (config.server_role == Config_Settings::slave || req[0] != "set")
     return;
   // Master to keep track of total_written
-  cout << "Propogating request to slaves: " << original_req.size() << " => " << original_req << endl;
+  cout << "Propogating request to slaves: " << original_req.size() << " => "
+       << original_req << endl;
   for (auto fd : config.replica_fd) {
     cout << "Propogating to :" << fd << endl;
-    new std::thread([=] () -> void {
-        send(fd, (void *)original_req.c_str(), original_req.size(), 0);
+    new std::thread([=]() -> void {
+      send(fd, (void *)original_req.c_str(), original_req.size(), 0);
     });
   }
-  if(total_written < 0) total_written = 0;
+  if (total_written < 0)
+    total_written = 0;
   total_written += original_req.size();
 }
 
-
-// We are going to operate on elements of a vector containing which FDs should be tested for. Whenever a file descriptor is confirmed, we remove it from the array
-// It's reset in the function call in the command_parser method.
+// We are going to operate on elements of a vector containing which FDs should
+// be tested for. Whenever a file descriptor is confirmed, we remove it from the
+// array It's reset in the function call in the command_parser method.
 /**
  * The plan is to use this array scoped only to the wait request.
  * - Prereqs:
  * -- The get_full_message should have a max timeout of 500 ms.
- * -- If the replca total_written_match our total_written, remove the element from the array, by setting it to -1.
- * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check the number of confirmed replicas. If the count is greater than the param , return the count.
- * -- Else: if more time is remaining, then redo the above. Else, send the count that's completed.
+ * -- If the replca total_written_match our total_written, remove the element
+ * from the array, by setting it to -1.
+ * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check the
+ * number of confirmed replicas. If the count is greater than the param , return
+ * the count.
+ * -- Else: if more time is remaining, then redo the above. Else, send the count
+ * that's completed.
  */
 void request_ack() {
   cout << "Requesting replicas for confirmation..." << endl;
   std::string req = get_resp_bulk_arr({"REPLCONF", "GETACK", "*"});
+  std::set<int> validated_replicas{};
 
   for (auto fd : config.replica_fd) {
-    if(validated_fd.contains(fd)) continue;
-    //struct timeval tv{};
-    //tv.tv_sec = 0;
-    //tv.tv_usec =50;
-    // Setting timeout to not ensure we don't wait too long
-    //setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    if (contains(validated_fd, fd))
+      continue;
+    // struct timeval tv{};
+    // tv.tv_sec = 0;
+    // tv.tv_usec =50;
+    //  Setting timeout to not ensure we don't wait too long
+    // setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     cout << "Requesting: " << fd << endl;
-    new std::thread([=] () -> void {
+    new std::thread([=]() -> void {
       cout << "CALLING " << fd << endl;
-      // Trigger requests to the replica servers. The replica server handlers should duress by updating the global replica_fd set.
+      // Trigger requests to the replica servers. The replica server handlers
+      // should duress by updating the global replica_fd set.
       send(fd, (void *)req.c_str(), req.size(), 0);
     });
   }
@@ -658,9 +689,10 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
   bool closefd = false;
   while (!closefd) {
 
-    cout << std::to_string(socket_fd) + " Master - Listening for message: " << std::endl;
-    std::string* req_ptr = get_full_message(socket_fd);
-    if(!req_ptr) {
+    cout << std::to_string(socket_fd) + " Master - Listening for message: "
+         << std::endl;
+    std::string *req_ptr = get_full_message(socket_fd);
+    if (!req_ptr) {
       cout << "Empty string... skipping" << endl;
       continue;
     }
@@ -668,7 +700,8 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     if (req.length() <= 1) {
       break;
     }
-    cout << std::to_string(socket_fd) + " Master - Received message: " << req << std::endl;
+    cout << std::to_string(socket_fd) + " Master - Received message: " << req
+         << std::endl;
     vector_strings *all_words = split_by_clrf(req);
     cout << std::to_string(socket_fd) + " Master - ARRAY: ";
 
@@ -679,14 +712,15 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
 
     vector_strings response{};
     bool should_insert = (parse_command(*all_words, response));
-    if(should_insert) {
+    if (should_insert) {
       cout << socket_fd << " SHOULD INSERT COMMAND" << endl;
       validated_fd.insert(socket_fd);
     }
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
-      cout <<std::to_string(socket_fd)  + " Master - Server Response: " << resp << std::endl;
+      cout << std::to_string(socket_fd) + " Master - Server Response: " << resp
+           << std::endl;
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
       follow_up_commands(resp, socket_fd);
       follow_up_slave(*all_words, req);
@@ -695,10 +729,9 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
   close(socket_fd);
 }
 
-
-
 /**
- * This is the handling method for the slave server that, after handshake, receives updates from the server containing database updates
+ * This is the handling method for the slave server that, after handshake,
+ * receives updates from the server containing database updates
  */
 void handshake_and_replication_handle() {
   // Use the current config variable to connect to the master
@@ -751,7 +784,7 @@ void handshake_and_replication_handle() {
     char buff[32] = {};
     cout << "Replica - Listening for message..." << std::endl;
 
-    long long* counter = (total_written < 0) ? nullptr : &total_written;
+    long long *counter = (total_written < 0) ? nullptr : &total_written;
     std::string req = *(get_full_message(replica_fd, counter));
 
     if (req.length() <= 1) {
