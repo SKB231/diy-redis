@@ -7,6 +7,7 @@
 # DON'T EDIT THIS!
 set -e
 echo "Building server..."
+cd ~/dev/diy-redis
 cmake . #>/dev/null
 echo "Running Make..."
 make #>/dev/null

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
+#include <ctime>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -45,6 +46,9 @@ template <typename T> bool contains(set<T> &s, T val) {
   return s.find(val) != s.end();
 }
 
+template <typename T, typename V> bool contains(unordered_map<T, V> &s, T val) {
+  return s.find(val) != s.end();
+}
 class Worker {
 
 public:
@@ -78,11 +82,32 @@ public:
         worker.params = pair<int, struct sockaddr_in *>{};
       } else {
 
-        // cout << "Attempting to delete after "
-        //<< worker.params_deletion.first << " milliseconds\n";
+        const auto start = std::chrono::high_resolution_clock::now();
+        const auto timeWait =
+            std::chrono::milliseconds(worker.params_deletion.first);
+        while (true) {
+          const auto end = std::chrono::high_resolution_clock::now();
+          if (end - start >= timeWait)
+            break;
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(worker.params_deletion.first));
+          // If the duration takes more than a day:
+          if (end - start >= std::chrono::seconds(3600 * 24)) {
+            this_thread::sleep_for(std::chrono::seconds(3600 * 24));
+            continue;
+          }
+          if (end - start >= std::chrono::seconds(3600)) {
+            this_thread::sleep_for(std::chrono::seconds(3600));
+            continue;
+          }
+
+          if (end - start >= std::chrono::seconds(60)) {
+            this_thread::sleep_for(std::chrono::seconds(60));
+            continue;
+          }
+        }
+        // std::this_thread::sleep_for(
+        //     std::chrono::milliseconds(worker.params_deletion.first - 10));
+        cout << "Timeup for deletion\n";
         const std::string &key_to_delete = worker.params_deletion.second;
         size_t x = mem_database.erase(key_to_delete);
         worker.job_type = Job_Type::connection;
@@ -238,9 +263,42 @@ in_addr_t string_to_addr(std::string &addr) {
   return ret_addr;
 }
 
+void prefill_db() {
+  std::string full_path = config.dir + "/" + config.dbfilename;
+  redis_database db{full_path};
+  db.read_database();
+  if (!db.isHealthy) {
+    return;
+  }
+
+  for (auto pair : db.redis_map) {
+    if (contains(db.entry_expiration, pair.first)) {
+
+      // if (lifetime > 0) {
+
+      //  auto params = pair<int, std::string>{lifetime, command[i + 1]};
+      //  cout << "Running delayed deletion by " << lifetime << "ms" <<
+      //  std::endl; master.run_deletion(params);
+      //}
+
+      auto now = std::chrono::system_clock::now();
+      long long now_timestamp = std::chrono::seconds(std::time(NULL)).count();
+      now_timestamp = now_timestamp * 1000;
+
+      cout << now_timestamp << "  vs  " << db.entry_expiration[pair.first]
+           << endl;
+      if (db.entry_expiration[pair.first] < now_timestamp) {
+        continue;
+      }
+    }
+    mem_database[pair.first] = pair.second;
+  }
+}
+
 int main(int argc, char **argv) {
 
   config = parse_arguments(argc, argv);
+  prefill_db();
 
   // You can use print statements as follows for debugging, they'll be
   // visible when running tests.
@@ -436,7 +494,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       // return "+" + std::string("PONG") + "\r\n";
 
       if (!is_replica)
-        resp.push_back("+" + std::string("PONG_NO") + "\r\n");
+        resp.push_back("+" + std::string("PONG") + "\r\n");
       i += 1;
       continue;
     }
@@ -475,6 +533,18 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
            << std::endl;
       if (!is_replica)
         resp.push_back("+OK\r\n");
+      continue;
+    }
+
+    if (command[i] == "keys") {
+
+      vector<string> allkeys{};
+
+      for (auto pair : mem_database) {
+        allkeys.push_back(pair.first);
+      }
+      resp.push_back(get_resp_bulk_arr(allkeys));
+      i += 1;
       continue;
     }
 
