@@ -1,8 +1,10 @@
 #include "string_utils.h"
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cctype>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <exception>
@@ -12,6 +14,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <sys/types.h>
 #include <thread>
@@ -26,21 +29,29 @@
 void handle(int socket_fd, struct sockaddr_in *client_addr);
 void handshake_and_replication_handle();
 void request_ack();
+std::string get_resp_bulkstring(std::string word);
 std::string *get_full_message(int socket_fd, int *count);
 const int BUF_SIZE = 250;
+class RedisStream;
 
 // Global Variables:
 using vector_strings = std::vector<std::string>;
 using redis_map = std::unordered_map<std::string, std::string>;
+using redis_stream_map =
+    std::unordered_map<std::string, unique_ptr<RedisStream>>;
+using stream_entry = pair<string, pair<string, string>>; // <id, <key, val>>
+using stack_of_pairs = std::vector<stream_entry>;
 using std::cout;
 using std::pair;
 
 redis_map mem_database{};
+redis_stream_map streams{};
 set<int> validated_fd{};
 long long total_written = -1;
 long long next_written = 0;
 int replica_validation_count = 0;
 bool wait_command_progressing = false;
+std::string get_resp_bulk_arr(std::vector<string> words);
 
 template <typename T> bool contains(set<T> &s, T val) {
   return s.find(val) != s.end();
@@ -49,8 +60,241 @@ template <typename T> bool contains(set<T> &s, T val) {
 template <typename T, typename V> bool contains(unordered_map<T, V> &s, T val) {
   return s.find(val) != s.end();
 }
-class Worker {
 
+class RedisStream {
+  stack_of_pairs stream;
+
+public:
+  string stream_key{};
+
+  explicit RedisStream(string stream_key) : stream_key(stream_key) {
+    stream = stack_of_pairs();
+  }
+  string add_to_stream(string id, string key, string val) {
+    cout << "Adding to stream: " << id << endl;
+    if (id == "*") {
+      // generate unix time
+      uint64_t msSinceEpoch =
+          chrono::duration_cast<chrono::milliseconds>(
+              chrono::system_clock::now().time_since_epoch())
+              .count();
+      id = to_string(msSinceEpoch) + "-0";
+      stream.push_back({id, {key, val}});
+      return get_resp_bulkstring(id);
+    }
+
+    uint64_t milliseconds_time;
+    int sequence_number;
+    uint64_t top_ms_time = 0;
+    int top_seq_num = 0;
+    bool wildcard_seq = false;
+    bool wildcard_ms_time = false;
+    bool tmp = false;
+    if (stream.size() > 0) {
+      stream_entry top_entry = stream.back();
+      parse_id(top_entry.first, top_ms_time, top_seq_num, tmp, tmp);
+    }
+    parse_id(id, milliseconds_time, sequence_number, wildcard_ms_time,
+             wildcard_seq);
+
+    if (wildcard_seq) {
+      int prev_seq_num;
+      uint64_t tmp_i;
+      if (stream.size() > 0) {
+        find_top(false, milliseconds_time, tmp_i, prev_seq_num);
+        sequence_number = prev_seq_num + 1;
+      } else {
+        sequence_number = 1;
+      }
+      cout << "Using new sequence number = " << sequence_number << endl;
+      id = to_string(milliseconds_time) + "-" + to_string(sequence_number);
+    }
+
+    if (milliseconds_time == 0 && sequence_number <= 0) {
+      return "-ERR The ID specified in XADD must be greater than 0-0\r\n";
+    }
+
+    cout << "Comparisions: " << endl;
+    cout << milliseconds_time << " " << top_ms_time << endl;
+    cout << sequence_number << " " << top_seq_num << endl;
+
+    if (stream.size() > 0 &&
+        (milliseconds_time < top_ms_time || (milliseconds_time == top_ms_time &&
+                                             sequence_number <= top_seq_num))) {
+      return "-ERR The ID specified in XADD is equal or smaller than the "
+             "target stream top item\r\n";
+    }
+    stream.push_back({id, {key, val}});
+    return get_resp_bulkstring(id);
+  }
+  string get_read(string start_id) {
+    int start_idx = search_id(start_id);
+    if (stream[start_idx].first == start_id) {
+      start_idx += 1;
+    }
+    vector<string> final_resp{};
+    for (int i = start_idx; i < stream.size(); i++) {
+      cout << "adding " << stream[i].first << endl;
+      string val_element =
+          get_resp_bulk_arr({stream[i].second.first, stream[i].second.second,
+                             stream[i].second.first, stream[i].second.second});
+      val_element =
+          "*2\r\n" + get_resp_bulkstring(stream[i].first) + val_element;
+      final_resp.push_back(val_element);
+    }
+
+    cout << final_resp.size() << endl;
+
+    string resp_string = "*" + to_string(final_resp.size()) + "\r\n";
+    for (auto x : final_resp) {
+      resp_string += x;
+    }
+
+    return resp_string;
+  }
+
+  string get_range(string start_id, string end_id) {
+    // first we get the idx for the end id directly
+    int end_idx = search_id(end_id);
+    int start_idx = search_id(start_id);
+    if (stream[start_idx].first != start_id &&
+        compare_ids(stream[start_idx].first, start_id) < 0) {
+      start_idx += 1;
+    }
+
+    vector<string> final_resp{};
+    for (int i = start_idx; i <= end_idx; i++) {
+      cout << "adding " << stream[i].first << endl;
+      string val_element =
+          get_resp_bulk_arr({stream[i].second.first, stream[i].second.second,
+                             stream[i].second.first, stream[i].second.second});
+      val_element =
+          "*2\r\n" + get_resp_bulkstring(stream[i].first) + val_element;
+      final_resp.push_back(val_element);
+    }
+
+    cout << final_resp.size() << endl;
+
+    string resp_string = "*" + to_string(final_resp.size()) + "\r\n";
+    for (auto x : final_resp) {
+      resp_string += x;
+    }
+    cout << endl;
+    return resp_string;
+  }
+
+  static string
+  get_resp_arr_of_arr(const unordered_map<string, string> &stream_responses,
+                      vector<string> stream_order) {
+    string return_string = "*" + to_string(stream_responses.size()) + "\r\n";
+    for (auto stream_key_name : stream_order) {
+      return_string += "*2\r\n";
+      return_string += get_resp_bulkstring(stream_key_name);
+      return_string += stream_responses.at(stream_key_name);
+    }
+    return return_string;
+  }
+
+  ~RedisStream() = default;
+
+private:
+  bool validate_id(string id) {}
+  void find_top(bool latest, uint64_t time, uint64_t &out_ms_time,
+                int &out_seq_number) {
+    stream_entry top_entry = stream.back();
+    bool tmp;
+    if (latest) {
+      parse_id(top_entry.first, out_ms_time, out_seq_number, tmp, tmp);
+      return;
+    }
+
+    // search for the first stream with time part of id = time
+    cout << "Searching for entry with time: " << time << endl;
+
+    int resp_idx = search_id(to_string(time) + "-" + to_string(INT_MAX));
+    uint64_t ms_time;
+    int seq_num;
+    bool temp;
+    parse_id(stream[resp_idx].first, ms_time, seq_num, temp, temp);
+    if (ms_time == time) {
+      out_ms_time = ms_time;
+      out_seq_number = seq_num;
+      return;
+    }
+    out_ms_time = time;
+    out_seq_number = -1;
+  }
+
+  void parse_id(string id, uint64_t &millisecondsTime, int &sequenceNumber,
+                bool &wildcard_ms_time, bool &wildcard_seq) {
+    int pos = id.find("-", 0);
+    string msTime = id.substr(0, pos);
+    string seqNumber = id.substr(pos + 1, id.size() - pos - 1);
+    try {
+      if (msTime != "*") {
+        millisecondsTime = std::stoll(msTime);
+      } else {
+        wildcard_ms_time = true;
+      }
+      if (seqNumber != "*") {
+        sequenceNumber = std::stoi(seqNumber);
+      } else {
+        wildcard_seq = true;
+      }
+    } catch (const std::invalid_argument) {
+      cerr << "Invalid Argument" << endl;
+    }
+  }
+
+  // binary search for the closest id which is less than or equal to target_id
+  int search_id(string target_id) {
+    int start = 0;
+    int end = stream.size();
+    cout << "looking for: " << target_id << endl;
+    while (end - 1 > start) {
+      cout << start << " => " << stream[start].first << "  ||||  "
+           << stream[end - 1].first << " <= " << end << endl;
+      int mid = (start + end) / 2; // floor the int
+      cout << mid << " <=> " << stream[mid].first << endl;
+      int compare = compare_ids(stream[mid].first, target_id);
+      if (compare == 0) {
+        cout << "Found at index: " << mid << " => " << stream[mid].first
+             << endl;
+        return mid;
+      }
+      if (compare < 0) {
+        // mid is smaller than target
+        start = mid;
+      } else {
+        // mid is larger than target
+        end = mid;
+      }
+    }
+    cout << "Ending at: " << start << " -> " << stream[start].first << endl;
+    return start;
+  }
+
+  // compare id left and right of the format <millisecond>-<sequencenumber>.
+  // Note that no wildcards are expected. returns 0 if both are equal, -1 if
+  // left is smaller, +1 if left is larger
+  int compare_ids(string left, string right) {
+    bool temp;
+    uint64_t left_ms, right_ms;
+    int left_seq, right_seq;
+    parse_id(left, left_ms, left_seq, temp, temp);
+    parse_id(right, right_ms, right_seq, temp, temp);
+
+    if (left_ms != right_ms)
+      return left_ms > right_ms ? 1 : -1;
+
+    if (right_seq == left_seq)
+      return 0;
+
+    return left_seq > right_seq ? 1 : -1;
+  }
+};
+
+class Worker {
 public:
   pair<int, struct sockaddr_in *> params;
   pair<int, std::string> params_deletion;
@@ -264,6 +508,8 @@ in_addr_t string_to_addr(std::string &addr) {
 }
 
 void prefill_db() {
+  if (config.dbfilename == "")
+    return;
   std::string full_path = config.dir + "/" + config.dbfilename;
   redis_database db{full_path};
   db.read_database();
@@ -350,8 +596,9 @@ int main(int argc, char **argv) {
 
   if (config.server_role == Config_Settings::slave) {
     new std::thread{
-        handshake_and_replication_handle}; // run handshake in a seperate thread
-                                           // without requirement to destroy
+        handshake_and_replication_handle}; // run handshake in a seperate
+                                           // thread without requirement to
+                                           // destroy
   }
 
   struct sockaddr_in client_addr;
@@ -489,6 +736,68 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       }
       i += 2;
     }
+    if (command[i] == "xread" && command[i + 1] == "streams") {
+      i += 2;
+      vector<string> stream_keys{};
+      vector<string> target_ids{};
+      while (i < command.size() && contains(streams, command[i])) {
+        stream_keys.push_back(command[i]);
+        i += 1;
+      }
+
+      unordered_map<string, string> resp_stream_map;
+      vector<string> stream_order;
+
+      for (int j = 0; j < stream_keys.size() && i < command.size(); j++, i++) {
+        cout << "Getting read for " << stream_keys[j] << " " << command[i]
+             << endl;
+        resp_stream_map.insert(
+            {stream_keys[j], streams[stream_keys[j]]->get_read(command[i])});
+        stream_order.push_back(stream_keys[j]);
+      }
+
+      string resp_arr =
+          RedisStream::get_resp_arr_of_arr(resp_stream_map, stream_order);
+      resp.push_back(resp_arr);
+      continue;
+    }
+
+    if (command[i] == "xrange") {
+      string stream_key_name = command[i + 1];
+      string start_id = command[i + 2];
+      string end_id = command[i + 3];
+      if (start_id == "-") {
+        start_id = "0-0";
+      }
+
+      resp.push_back(streams[stream_key_name]->get_range(start_id, end_id));
+      i += 4;
+      continue;
+    }
+    if (command[i] == "xadd") {
+      string stream_key_name = command[i + 1];
+      int offset = 0;
+      string entryID = command[i + 2];
+      cout << command.size() << " || " << i << endl;
+      if (command.size() < i + 5) {
+        offset = -1;
+        entryID = "*";
+      }
+      string key = command[i + 3 + offset];
+      string val = command[i + 4 + offset];
+
+      if (!contains(streams, stream_key_name)) {
+        auto rd_stream =
+            unique_ptr<RedisStream>(new RedisStream(stream_key_name));
+
+        streams.insert({stream_key_name, std::move(rd_stream)});
+      }
+      string addResponse =
+          streams[stream_key_name]->add_to_stream(entryID, key, val);
+      resp.push_back(addResponse);
+      i += (5 + offset);
+      continue;
+    }
 
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
@@ -533,6 +842,20 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
            << std::endl;
       if (!is_replica)
         resp.push_back("+OK\r\n");
+      continue;
+    }
+
+    if (command[i] == "type") {
+      string key = command[i + 1];
+
+      if (contains(mem_database, key)) {
+        resp.push_back("+string\r\n");
+      } else if (contains(streams, key)) {
+        resp.push_back("+stream\r\n");
+      } else {
+        resp.push_back("+none\r\n");
+      }
+      i += 2;
       continue;
     }
 
@@ -646,15 +969,13 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
   }
 
   cout << "Finised parsing " << std::endl;
-  for (int i = 0; i < resp.size(); i++)
-    cout << resp[i] << ", ";
   return should_insert;
 }
 
 /**
- * convert_to_binary converts a hex string into an array of bytes containing the
- * data. Note that the bytes are packed in little endian format and set the
- * buffer
+ * convert_to_binary converts a hex string into an array of bytes containing
+ * the data. Note that the bytes are packed in little endian format and set
+ * the buffer
  *
  */
 char *convert_to_binary(std::string hex) {
@@ -679,10 +1000,11 @@ char *convert_to_binary(std::string hex) {
 void follow_up_commands(std::string sent_command, int socket_fd) {
   if (sent_command.substr(0, 11) == "+FULLRESYNC") {
     cout << "SEND Empty RDB File:";
-    std::string empty_rdb_file_hex =
-        "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62"
-        "697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa0861"
-        "6f662d62617365c000fff06e3bfec0ff5aa2";
+    std::string empty_rdb_file_hex = "524544495330303131fa0972656469732d76657"
+                                     "205372e322e30fa0a72656469732d62"
+                                     "697473c040fa056374696d65c26d08bc65fa087"
+                                     "57365642d6d656dc2b0c41000fa0861"
+                                     "6f662d62617365c000fff06e3bfec0ff5aa2";
 
     char *binary_file = convert_to_binary(empty_rdb_file_hex);
     int size = empty_rdb_file_hex.size() / 2;
@@ -717,19 +1039,19 @@ void follow_up_slave(vector_strings &req, std::string original_req) {
 }
 
 // We are going to operate on elements of a vector containing which FDs should
-// be tested for. Whenever a file descriptor is confirmed, we remove it from the
-// array It's reset in the function call in the command_parser method.
+// be tested for. Whenever a file descriptor is confirmed, we remove it from
+// the array It's reset in the function call in the command_parser method.
 /**
  * The plan is to use this array scoped only to the wait request.
  * - Prereqs:
  * -- The get_full_message should have a max timeout of 500 ms.
  * -- If the replca total_written_match our total_written, remove the element
  * from the array, by setting it to -1.
- * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check the
- * number of confirmed replicas. If the count is greater than the param , return
- * the count.
- * -- Else: if more time is remaining, then redo the above. Else, send the count
- * that's completed.
+ * -- Wait min(100 ms, param_timeout) after calling request_ack(), and check
+ * the number of confirmed replicas. If the count is greater than the param ,
+ * return the count.
+ * -- Else: if more time is remaining, then redo the above. Else, send the
+ * count that's completed.
  */
 void request_ack() {
   cout << "Requesting replicas for confirmation..." << endl;
@@ -783,14 +1105,11 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     vector_strings response{};
     bool should_insert = (parse_command(*all_words, response));
     if (should_insert) {
-      cout << socket_fd << " SHOULD INSERT COMMAND" << endl;
       validated_fd.insert(socket_fd);
     }
 
     for (int i = 0; i < response.size(); i++) {
       std::string resp = response[i];
-      cout << std::to_string(socket_fd) + " Master - Server Response: " << resp
-           << std::endl;
       send(socket_fd, (void *)resp.c_str(), resp.size(), 0);
       follow_up_commands(resp, socket_fd);
       follow_up_slave(*all_words, req);
