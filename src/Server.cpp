@@ -134,7 +134,7 @@ public:
     }
     vector<string> final_resp{};
     for (int i = start_idx; i < stream.size(); i++) {
-      cout << "adding " << stream[i].first << endl;
+      // cout << "adding " << stream[i].first << endl;
       string val_element =
           get_resp_bulk_arr({stream[i].second.first, stream[i].second.second,
                              stream[i].second.first, stream[i].second.second});
@@ -142,8 +142,6 @@ public:
           "*2\r\n" + get_resp_bulkstring(stream[i].first) + val_element;
       final_resp.push_back(val_element);
     }
-
-    cout << final_resp.size() << endl;
 
     string resp_string = "*" + to_string(final_resp.size()) + "\r\n";
     for (auto x : final_resp) {
@@ -184,13 +182,12 @@ public:
   }
 
   static string
-  get_resp_arr_of_arr(const unordered_map<string, string> &stream_responses,
-                      vector<string> stream_order) {
+  get_resp_arr_of_arr(const vector<pair<string, string>> &stream_responses) {
     string return_string = "*" + to_string(stream_responses.size()) + "\r\n";
-    for (auto stream_key_name : stream_order) {
+    for (auto element : stream_responses) {
       return_string += "*2\r\n";
-      return_string += get_resp_bulkstring(stream_key_name);
-      return_string += stream_responses.at(stream_key_name);
+      return_string += get_resp_bulkstring(element.first);
+      return_string += element.second;
     }
     return return_string;
   }
@@ -252,14 +249,14 @@ private:
     int end = stream.size();
     cout << "looking for: " << target_id << endl;
     while (end - 1 > start) {
-      cout << start << " => " << stream[start].first << "  ||||  "
-           << stream[end - 1].first << " <= " << end << endl;
+      // cout << start << " => " << stream[start].first << "  ||||  "
+      //      << stream[end - 1].first << " <= " << end << endl;
       int mid = (start + end) / 2; // floor the int
-      cout << mid << " <=> " << stream[mid].first << endl;
+      // cout << mid << " <=> " << stream[mid].first << endl;
       int compare = compare_ids(stream[mid].first, target_id);
       if (compare == 0) {
-        cout << "Found at index: " << mid << " => " << stream[mid].first
-             << endl;
+        // cout << "Found at index: " << mid << " => " << stream[mid].first
+        //      << endl;
         return mid;
       }
       if (compare < 0) {
@@ -270,7 +267,7 @@ private:
         end = mid;
       }
     }
-    cout << "Ending at: " << start << " -> " << stream[start].first << endl;
+    // cout << "Ending at: " << start << " -> " << stream[start].first << endl;
     return start;
   }
 
@@ -736,7 +733,16 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       }
       i += 2;
     }
-    if (command[i] == "xread" && command[i + 1] == "streams") {
+
+    // XREAD [BLOCK milliseconds] STREAMS key [key ...] id [id ...]
+    if (command[i] == "xread") {
+      // handle block option
+      int64_t block_time = -1;
+      if (command[i + 1] == "block") {
+        block_time = stoll(command[i + 2]);
+        i += 2;
+      }
+
       i += 2;
       vector<string> stream_keys{};
       vector<string> target_ids{};
@@ -744,21 +750,55 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
         stream_keys.push_back(command[i]);
         i += 1;
       }
-
-      unordered_map<string, string> resp_stream_map;
-      vector<string> stream_order;
-
+      vector<pair<string, string>> response_vec;
       for (int j = 0; j < stream_keys.size() && i < command.size(); j++, i++) {
         cout << "Getting read for " << stream_keys[j] << " " << command[i]
              << endl;
-        resp_stream_map.insert(
-            {stream_keys[j], streams[stream_keys[j]]->get_read(command[i])});
-        stream_order.push_back(stream_keys[j]);
+        target_ids.push_back(command[i]);
+        // resp_stream_map.push_back(
+        //     {stream_keys[j], streams[stream_keys[j]]->get_read(command[i])});
       }
 
-      string resp_arr =
-          RedisStream::get_resp_arr_of_arr(resp_stream_map, stream_order);
-      resp.push_back(resp_arr);
+      // Keep querying till timeout
+      bool empty_response = true;
+      auto start_time = chrono::high_resolution_clock::now();
+      std::chrono::milliseconds wait_time =
+          std::chrono::milliseconds(block_time);
+      while (empty_response) {
+        response_vec.clear();
+        for (int j = 0; j < stream_keys.size(); j++) {
+          string query_response =
+              streams[stream_keys[j]]->get_read(target_ids[j]);
+          cout << "Response for " << stream_keys[j] << " => " << query_response
+               << endl;
+          empty_response =
+              (query_response == "" ||
+               query_response == "*0\r\n"); // check for empty response
+          response_vec.push_back({stream_keys[j], query_response});
+        }
+
+        if (block_time == -1) {
+          break;
+        }
+        auto now_time = chrono::high_resolution_clock::now();
+        if (now_time - start_time < wait_time || block_time == 0) {
+          // cout << (std::chrono::duration_cast<std::chrono::milliseconds>(
+          //              now_time - start_time))
+          //             .count()
+          //      << "  vs " << wait_time.count() << endl;
+          cout << "Waiting ..." << endl;
+          this_thread::sleep_for(std::chrono::milliseconds(10));
+          continue;
+        }
+        break;
+      }
+      if (!empty_response) {
+        string resp_arr = RedisStream::get_resp_arr_of_arr(response_vec);
+        resp.push_back(resp_arr);
+      } else {
+        resp.push_back("$-1\r\n");
+      }
+
       continue;
     }
 
