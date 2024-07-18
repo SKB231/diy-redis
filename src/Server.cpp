@@ -1,5 +1,4 @@
 #include "string_utils.h"
-#include <algorithm>
 #include <arpa/inet.h>
 #include <cctype>
 #include <chrono>
@@ -45,14 +44,16 @@ using std::cout;
 using std::pair;
 
 redis_map mem_database{};
+bool in_multi_state = false;
 redis_stream_map streams{};
 set<int> validated_fd{};
 long long total_written = -1;
 long long next_written = 0;
 int replica_validation_count = 0;
 bool wait_command_progressing = false;
-std::string get_resp_bulk_arr(std::vector<string> words);
+int transaction_count = 0;
 
+std::string get_resp_bulk_arr(std::vector<string> words);
 template <typename T> bool contains(set<T> &s, T val) {
   return s.find(val) != s.end();
 }
@@ -190,6 +191,14 @@ public:
       return_string += element.second;
     }
     return return_string;
+  }
+
+  stream_entry stack_top(bool &isEmpty) {
+    if (stream.size() == 0) {
+      isEmpty = true;
+    }
+    isEmpty = false;
+    return stream[stream.size() - 1];
   }
 
   ~RedisStream() = default;
@@ -647,12 +656,16 @@ vector_strings *split_by_clrf(std::string &full_message) {
   for (int i = 0; i < full_message.length() - 1; i += 1) {
     if (full_message[i] == '\r' && full_message[i + 1] == '\n') {
       std::string word = full_message.substr(last_token, i - last_token);
-      if (word.length() > 0 && word[0] != '$' && word[0] != '*') {
-        words->push_back(word);
+      if (word.length() > 0 && word[0] != '*') {
+        if (word[0] != '$' || word == "$") {
+          cout << word << ", ";
+          words->push_back(word);
+        }
       }
       last_token = i + 2;
     }
   }
+  cout << endl;
   return words;
 }
 
@@ -685,11 +698,11 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
   for (int i = 0; i < command.size();) {
     cout << "Parsing command: " << command[i] << std::endl;
 
+    // ECHO <string to echo>
     if (command[i] == "echo") {
       // return "+" + command[1] + "\r\n";
       if (!is_replica)
         resp.push_back("+" + command[i + 1] + "\r\n");
-
       i += 2;
       continue;
     }
@@ -754,9 +767,20 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       for (int j = 0; j < stream_keys.size() && i < command.size(); j++, i++) {
         cout << "Getting read for " << stream_keys[j] << " " << command[i]
              << endl;
-        target_ids.push_back(command[i]);
+        if (command[i] == "$") {
+          bool is_empty = false;
+          auto top_element = streams[stream_keys[j]]->stack_top(is_empty);
+          if (is_empty) {
+            target_ids.push_back("0-0");
+          } else {
+            target_ids.push_back(top_element.first);
+          }
+        } else {
+          target_ids.push_back(command[i]);
+        }
         // resp_stream_map.push_back(
-        //     {stream_keys[j], streams[stream_keys[j]]->get_read(command[i])});
+        //     {stream_keys[j],
+        //     streams[stream_keys[j]]->get_read(command[i])});
       }
 
       // Keep querying till timeout
@@ -802,6 +826,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       continue;
     }
 
+    // XRANGE stream_key_name start_id end_id
     if (command[i] == "xrange") {
       string stream_key_name = command[i + 1];
       string start_id = command[i + 2];
@@ -814,6 +839,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       i += 4;
       continue;
     }
+
     if (command[i] == "xadd") {
       string stream_key_name = command[i + 1];
       int offset = 0;
@@ -839,6 +865,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       continue;
     }
 
+    // PING
     if (command[i] == "ping") {
       // return "+" + std::string("PONG") + "\r\n";
 
@@ -848,6 +875,49 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       continue;
     }
 
+    // INCR key
+    if (command[i] == "incr") {
+      string key = command[i + 1];
+
+      i += 2;
+      if (!contains(mem_database, key)) {
+        mem_database[key] = "1";
+        resp.push_back(":1\r\n");
+        continue;
+      }
+
+      string current_key = mem_database[key];
+      try {
+        long int_key = stoi(current_key);
+        int_key += 1;
+        resp.push_back(":" + to_string(int_key) + "\r\n");
+        mem_database[key] = to_string(int_key);
+      } catch (...) {
+        resp.push_back("-ERR value is not an integer or out of range\r\n");
+      }
+      continue;
+    }
+
+    // EXEC
+    if (command[i] == "exec") {
+      if (!in_multi_state) {
+        resp.push_back("-ERR EXEC without MULTI\r\n");
+        i += 1;
+        continue;
+      }
+      in_multi_state = false;
+      resp.push_back(get_resp_bulk_arr({}));
+    }
+
+    // MULTI
+    if (command[i] == "multi") {
+      resp.push_back("+OK\r\n");
+      in_multi_state = true;
+      i += 1;
+      continue;
+    }
+
+    // SET key value [EX seconds]
     if (command[i] == "set") {
       cout << "Set command" << std::endl;
       std::size_t pos{};
@@ -885,6 +955,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       continue;
     }
 
+    // TYPE key
     if (command[i] == "type") {
       string key = command[i + 1];
 
@@ -898,7 +969,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       i += 2;
       continue;
     }
-
+    // KEYS
     if (command[i] == "keys") {
 
       vector<string> allkeys{};
