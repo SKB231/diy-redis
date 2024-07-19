@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <cctype>
 #include <chrono>
+#include <climits>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdlib>
@@ -15,14 +16,13 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <sys/socket.h>
 
 // Function prototypes:
 void handle(int socket_fd, struct sockaddr_in *client_addr);
@@ -42,7 +42,8 @@ using stream_entry = pair<string, pair<string, string>>; // <id, <key, val>>
 using stack_of_pairs = std::vector<stream_entry>;
 using std::cout;
 using std::pair;
-
+using SHOULD_INSERT_TO_ACK_FD = bool;
+using transaction_map = unordered_map<int, vector<string>>;
 redis_map mem_database{};
 bool in_multi_state = false;
 redis_stream_map streams{};
@@ -52,6 +53,8 @@ long long next_written = 0;
 int replica_validation_count = 0;
 bool wait_command_progressing = false;
 int transaction_count = 0;
+// vector<string> txn_queue{};
+transaction_map txn_map{};
 
 std::string get_resp_bulk_arr(std::vector<string> words);
 template <typename T> bool contains(set<T> &s, T val) {
@@ -276,7 +279,8 @@ private:
         end = mid;
       }
     }
-    // cout << "Ending at: " << start << " -> " << stream[start].first << endl;
+    // cout << "Ending at: " << start << " -> " << stream[start].first <<
+    // endl;
     return start;
   }
 
@@ -681,12 +685,18 @@ std::string get_resp_bulk_arr(std::vector<string> words) {
   return final_str;
 }
 
-using SHOULD_INSERT_TO_ACK_FD = bool;
+void append_vector(vector_strings &dest, vector_strings &source, int start,
+                   int size) {
+  for (int i = start; i < start + size; i++) {
+    dest.push_back(source[i]);
+  }
+}
 
 // Returns whether the command was sent by a client or replica
 SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
                                       vector_strings &resp,
-                                      bool is_replica = false) {
+                                      bool is_replica = false,
+                                      int caller_fd = 0) {
 
   SHOULD_INSERT_TO_ACK_FD should_insert = false;
   for (int i = 0; i < command.size(); i += 1) {
@@ -694,7 +704,7 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
       command[i][j] = std::tolower(command[i][j]);
     }
   }
-
+  // WRITE COMMANDS: set, incr, xadd
   for (int i = 0; i < command.size();) {
     cout << "Parsing command: " << command[i] << std::endl;
 
@@ -723,13 +733,6 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
               [&](vector_strings &resp) -> void {
                 this_thread::sleep_for(std::chrono::milliseconds(200));
                 request_ack();
-                // while(replica_validation_count <= repl_count) {
-                //   this_thread::sleep_for(std::chrono::milliseconds(200));
-                //   cout << "Request ack" << endl;
-                //   request_ack(validated_replicas, &validated_count);
-                //   cout << "Completed ack request. Sleeping for 200 ms" <<
-                //   endl; if(!wait_command_progressing) break;
-                // }
               },
               std::ref(resp));
           cout << "Sleepiping for " << timeout << " ms" << endl;
@@ -877,6 +880,14 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
 
     // INCR key
     if (command[i] == "incr") {
+      cout << "IN MULTI STATE: " << in_multi_state << endl;
+      if (contains(txn_map, caller_fd)) {
+        append_vector(txn_map[caller_fd], command, i, 2);
+        resp.push_back("+QUEUED\r\n");
+        i += 2;
+        continue;
+      }
+
       string key = command[i + 1];
 
       i += 2;
@@ -900,25 +911,71 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
 
     // EXEC
     if (command[i] == "exec") {
-      if (!in_multi_state) {
+      if (!contains(txn_map, caller_fd)) {
         resp.push_back("-ERR EXEC without MULTI\r\n");
         i += 1;
         continue;
       }
-      in_multi_state = false;
-      resp.push_back(get_resp_bulk_arr({}));
+      vector_strings exec_responses{};
+
+      cout << "EXEC QUEUE: " << endl;
+      for (auto x : txn_map[caller_fd]) {
+        cout << x << ", ";
+      }
+
+      vector_strings txn_queue{std::move(txn_map[caller_fd])};
+      txn_map.erase(caller_fd);
+
+      SHOULD_INSERT_TO_ACK_FD exec_resp =
+          parse_command(txn_queue, exec_responses, is_replica, caller_fd);
+      should_insert = should_insert || exec_resp;
+
+      string resp_element = "*" + to_string(exec_responses.size()) + "\r\n";
+
+      for (auto x : exec_responses) {
+        resp_element += x;
+      }
+      resp.push_back(resp_element);
+    }
+
+    if (command[i] == "discard") {
+      if (!contains(txn_map, caller_fd)) {
+        resp.push_back("-ERR DISCARD without MULTI\r\n");
+        i += 1;
+        continue;
+      }
+
+      txn_map.erase(caller_fd);
+      resp.push_back("+OK\r\n");
+      i += 1;
+      continue;
     }
 
     // MULTI
     if (command[i] == "multi") {
       resp.push_back("+OK\r\n");
       in_multi_state = true;
+      if (contains(txn_map, caller_fd))
+        txn_map.erase(caller_fd);
+
+      txn_map[caller_fd] = vector_strings{};
       i += 1;
       continue;
     }
 
     // SET key value [EX seconds]
     if (command[i] == "set") {
+      if (contains(txn_map, caller_fd)) {
+        resp.push_back("+QUEUED\r\n");
+        append_vector(txn_map[caller_fd], command, i, 3);
+        i += 3;
+        if (i < command.size() && command[i] == "ex") {
+          append_vector(txn_map[caller_fd], command, i, 2);
+          i += 2;
+        }
+        continue;
+      }
+
       cout << "Set command" << std::endl;
       std::size_t pos{};
       int skip_amount = 3;
@@ -1052,6 +1109,13 @@ SHOULD_INSERT_TO_ACK_FD parse_command(vector_strings &command,
     }
 
     if (command[i] == "get") {
+      if (contains(txn_map, caller_fd)) {
+        resp.push_back("+QUEUED\r\n");
+        append_vector(txn_map[caller_fd], command, i, 2);
+        i += 2;
+        continue;
+      }
+
       if (command[i + 1] == "dir") {
         resp.push_back(get_resp_bulk_arr({"dir", config.dir}));
         i += 2;
@@ -1214,7 +1278,8 @@ void handle(int socket_fd, struct sockaddr_in *client_addr) {
     cout << std::endl;
 
     vector_strings response{};
-    bool should_insert = (parse_command(*all_words, response));
+    bool tmp;
+    bool should_insert = (parse_command(*all_words, response, tmp, socket_fd));
     if (should_insert) {
       validated_fd.insert(socket_fd);
     }
